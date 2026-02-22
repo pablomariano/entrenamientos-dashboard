@@ -6,12 +6,12 @@ import {
   LayoutDashboardIcon,
   LayoutTemplateIcon,
   ListIcon,
-  SettingsIcon,
   Upload,
 } from "lucide-react";
 
 import { NavMain } from "@/components/examples/dashboard/components/nav-main";
 import { NavSecondary } from "@/components/examples/dashboard/components/nav-secondary";
+import { SettingsSheet } from "@/components/entrenamientos/settings-sheet";
 import {
   Sidebar,
   SidebarContent,
@@ -29,10 +29,7 @@ const data = {
     { title: "Estadísticas", url: "/dashboard", icon: BarChartIcon },
     { title: "Demo Tweakcn", url: "/dashboard/tweakcn", icon: LayoutTemplateIcon },
   ],
-  navSecondary: [
-    { title: "Cargar datos", url: "/", icon: Upload },
-    { title: "Configuración", url: "#", icon: SettingsIcon },
-  ],
+  navSecondary: [{ title: "Cargar datos", url: "/", icon: Upload }],
 };
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -52,7 +49,10 @@ export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<type
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <div className="mt-auto flex flex-col gap-1">
+          <NavSecondary items={data.navSecondary} />
+          <SettingsSheet />
+        </div>
       </SidebarContent>
     </Sidebar>
   );
