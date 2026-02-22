@@ -16,11 +16,14 @@ const themeInitScript = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params?: Promise<Record<string, string | string[]>>;
 }) {
+  if (params) await params;
   return (
     <html lang="es" suppressHydrationWarning>
       <body>
