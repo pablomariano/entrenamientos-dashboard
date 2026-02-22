@@ -1,8 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrainingSession } from "@/lib/entrenamientos/data-processor";
+import { Line, LineChart, XAxis, CartesianGrid } from "recharts";
+
+const chartConfig = {
+  hr: { label: "HR Promedio (bpm)", color: "var(--chart-1)" },
+} satisfies ChartConfig;
 
 interface HRChartProps {
   sessions: TrainingSession[];
@@ -26,25 +31,42 @@ export function HRChart({ sessions }: HRChartProps) {
         <CardDescription>Últimos 20 entrenamientos con datos de HR</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={hrData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="fecha" fontSize={12} />
-            <YAxis fontSize={12} domain={["dataMin - 10", "dataMax + 10"]} />
-            <Tooltip
-              labelFormatter={(_, payload) => {
-                if (payload && payload[0]) {
-                  return payload[0].payload.fullDate.toLocaleDateString("es-ES", {
-                    weekday: "long", year: "numeric", month: "long", day: "numeric",
-                  });
-                }
-                return "";
-              }}
-              formatter={(value: number) => [`${value} bpm`, "HR Promedio"]}
+        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+          <LineChart data={hrData} margin={{ top: 0 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="fecha"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
             />
-            <Line type="monotone" dataKey="hr" stroke="hsl(0 84.2% 60.2%)" strokeWidth={2} dot={{ fill: "hsl(0 84.2% 60.2%)" }} />
+            <ChartTooltip
+              cursor={false}
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(_, payload) => {
+                    if (payload?.[0]?.payload?.fullDate) {
+                      return payload[0].payload.fullDate.toLocaleDateString("es-ES", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      });
+                    }
+                    return "";
+                  }}
+                />
+              }
+            />
+            <Line
+              type="monotone"
+              dataKey="hr"
+              stroke="var(--color-hr)"
+              strokeWidth={2}
+              dot={{ fill: "var(--color-hr)" }}
+            />
           </LineChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </CardContent>
     </Card>
   );

@@ -29,7 +29,7 @@ const data = {
     { title: "Estadísticas", url: "/dashboard", icon: BarChartIcon },
     { title: "Demo Tweakcn", url: "/dashboard/tweakcn", icon: LayoutTemplateIcon },
   ],
-  navSecondary: [{ title: "Cargar datos", url: "/", icon: Upload }],
+  navSecondary: [{ title: "Cargar datos", url: "/entrenamientos", icon: Upload }],
 };
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
