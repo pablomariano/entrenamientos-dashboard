@@ -46,17 +46,17 @@ export function MonthlySessionsChart({ data }: MonthlySessionsChartProps) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
-          <BarChart accessibilityLayer data={chartData} layout="vertical" margin={{ left: 0 }}>
-            <YAxis
+          <BarChart accessibilityLayer data={chartData} margin={{ top: 0 }}>
+            <XAxis
               dataKey="monthLabel"
               type="category"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
             />
-            <XAxis dataKey="entrenamientos" type="number" hide />
+            <YAxis dataKey="entrenamientos" type="number" hide />
             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-            <Bar dataKey="entrenamientos" layout="vertical" radius={5} />
+            <Bar dataKey="entrenamientos" radius={5} />
           </BarChart>
         </ChartContainer>
       </CardContent>
