@@ -6,11 +6,13 @@ import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSwipeGesture } from "@/hooks/use-swipe-gesture";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -64,6 +66,20 @@ const SidebarProvider = React.forwardRef<
     () => (isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)),
     [isMobile, setOpen, setOpenMobile]
   );
+  
+  // Hook para detectar gestos de arrastre desde el borde izquierdo en móvil
+  const openSidebarMobile = React.useCallback(() => {
+    if (isMobile && !openMobile) {
+      setOpenMobile(true);
+    }
+  }, [isMobile, openMobile]);
+  
+  useSwipeGesture({
+    onSwipeRight: openSidebarMobile,
+    threshold: 50,
+    edgeThreshold: 20,
+  });
+  
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
@@ -126,6 +142,9 @@ const Sidebar = React.forwardRef<
           style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
           side={side}
         >
+          <VisuallyHidden>
+            <SheetTitle>Sidebar</SheetTitle>
+          </VisuallyHidden>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
       </Sheet>
