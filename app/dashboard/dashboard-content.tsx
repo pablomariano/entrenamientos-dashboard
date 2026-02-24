@@ -28,7 +28,7 @@ export function DashboardContent() {
   useEffect(() => {
     const storedData = localStorage.getItem("trainingData");
     if (!storedData) {
-      router.push("/");
+      router.push("/entrenamientos");
       return;
     }
     try {
@@ -36,7 +36,7 @@ export function DashboardContent() {
       setData(parsedData);
     } catch (error) {
       console.error("Error loading data:", error);
-      router.push("/");
+      router.push("/entrenamientos");
     } finally {
       setLoading(false);
     }

@@ -25,11 +25,11 @@ import {
 
 const data = {
   navMain: [
-    { title: "Dashboard", url: "/entrenamientos/dashboard", icon: LayoutDashboardIcon },
-    { title: "Sesiones", url: "/entrenamientos/dashboard", icon: ListIcon },
-    { title: "Frecuencia Cardíaca", url: "/entrenamientos/dashboard", icon: Heart },
-    { title: "Estadísticas", url: "/entrenamientos/dashboard", icon: BarChartIcon },
-    { title: "Demo Tweakcn", url: "/entrenamientos/dashboard/tweakcn", icon: LayoutTemplateIcon },
+    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
+    { title: "Sesiones", url: "/dashboard", icon: ListIcon },
+    { title: "Frecuencia Cardíaca", url: "/dashboard", icon: Heart },
+    { title: "Estadísticas", url: "/dashboard", icon: BarChartIcon },
+    { title: "Demo Tweakcn", url: "/dashboard/tweakcn", icon: LayoutTemplateIcon },
   ],
   quickAction: {
     title: "Importar archivo",
@@ -41,8 +41,7 @@ const data = {
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const isDashboardActive =
-    pathname === "/entrenamientos/dashboard" || pathname?.startsWith("/entrenamientos/dashboard");
+  const isDashboardActive = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -50,7 +49,7 @@ export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<type
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5" isActive={isDashboardActive}>
-              <a href="/entrenamientos/dashboard">
+              <a href="/dashboard">
                 <Activity className="h-5 w-5" />
                 <span className="text-base font-semibold">Entrenamientos</span>
               </a>

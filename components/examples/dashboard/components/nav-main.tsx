@@ -60,7 +60,8 @@ export function NavMain({
         </SidebarMenu>
         <SidebarMenu>
           {items.map((item) => {
-            const isActive = pathname === item.url || (item.url !== "/dashboard" && pathname?.startsWith(item.url));
+            const isActive =
+              pathname === item.url || (pathname?.startsWith(item.url + "/") ?? false);
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
