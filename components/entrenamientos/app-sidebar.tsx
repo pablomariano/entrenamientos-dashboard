@@ -13,7 +13,6 @@ import {
 import { usePathname } from "next/navigation";
 
 import { NavMain } from "@/components/examples/dashboard/components/nav-main";
-import { NavSecondary } from "@/components/examples/dashboard/components/nav-secondary";
 import { SettingsSheet } from "@/components/entrenamientos/settings-sheet";
 import {
   Sidebar,
@@ -26,18 +25,24 @@ import {
 
 const data = {
   navMain: [
-    { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
-    { title: "Sesiones", url: "/dashboard", icon: ListIcon },
-    { title: "Frecuencia Cardíaca", url: "/dashboard", icon: Heart },
-    { title: "Estadísticas", url: "/dashboard", icon: BarChartIcon },
-    { title: "Demo Tweakcn", url: "/dashboard/tweakcn", icon: LayoutTemplateIcon },
+    { title: "Dashboard", url: "/entrenamientos/dashboard", icon: LayoutDashboardIcon },
+    { title: "Sesiones", url: "/entrenamientos/dashboard", icon: ListIcon },
+    { title: "Frecuencia Cardíaca", url: "/entrenamientos/dashboard", icon: Heart },
+    { title: "Estadísticas", url: "/entrenamientos/dashboard", icon: BarChartIcon },
+    { title: "Demo Tweakcn", url: "/entrenamientos/dashboard/tweakcn", icon: LayoutTemplateIcon },
   ],
-  navSecondary: [{ title: "Cargar datos", url: "/entrenamientos", icon: Upload }],
+  quickAction: {
+    title: "Importar archivo",
+    url: "/entrenamientos",
+    icon: Upload,
+    tooltip: "Importar archivo de entrenamientos",
+  },
 };
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const isDashboardActive = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
+  const isDashboardActive =
+    pathname === "/entrenamientos/dashboard" || pathname?.startsWith("/entrenamientos/dashboard");
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -45,7 +50,7 @@ export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<type
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5" isActive={isDashboardActive}>
-              <a href="/dashboard">
+              <a href="/entrenamientos/dashboard">
                 <Activity className="h-5 w-5" />
                 <span className="text-base font-semibold">Entrenamientos</span>
               </a>
@@ -54,9 +59,8 @@ export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<type
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} quickAction={data.quickAction} />
         <div className="mt-auto flex flex-col gap-1">
-          <NavSecondary items={data.navSecondary} />
           <SettingsSheet />
         </div>
       </SidebarContent>

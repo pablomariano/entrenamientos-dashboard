@@ -12,7 +12,7 @@ export function EntrenamientosHomeContent() {
 
   const handleDataLoaded = (data: TrainingData) => {
     localStorage.setItem("trainingData", JSON.stringify(data));
-    router.push("/entrenamientos/dashboard");
+    router.push("/dashboard/tweakcn");
   };
 
   return (

@@ -12,14 +12,27 @@ import {
 
 export function NavMain({
   items,
+  quickAction,
 }: {
   items: {
     title: string;
     url: string;
     icon?: LucideIcon;
   }[];
+  quickAction?: {
+    title: string;
+    url: string;
+    icon: LucideIcon;
+    tooltip?: string;
+  };
 }) {
   const pathname = usePathname();
+  const action = quickAction ?? {
+    title: "Quick Create",
+    url: "#",
+    icon: PlusCircleIcon,
+    tooltip: "Quick Create",
+  };
 
   return (
     <SidebarGroup>
@@ -27,11 +40,21 @@ export function NavMain({
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
             <SidebarMenuButton
-              tooltip="Quick Create"
+              asChild={!!quickAction}
+              tooltip={action.tooltip ?? action.title}
               className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
             >
-              <PlusCircleIcon />
-              <span>Quick Create</span>
+              {quickAction ? (
+                <a href={action.url}>
+                  <action.icon />
+                  <span>{action.title}</span>
+                </a>
+              ) : (
+                <>
+                  <action.icon />
+                  <span>{action.title}</span>
+                </>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
