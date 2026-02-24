@@ -1,6 +1,7 @@
 "use client";
 
 import { PlusCircleIcon, type LucideIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -18,6 +19,8 @@ export function NavMain({
     icon?: LucideIcon;
   }[];
 }) {
+  const pathname = usePathname();
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -33,16 +36,19 @@ export function NavMain({
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <a href={item.url}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {items.map((item) => {
+            const isActive = pathname === item.url || (item.url !== "/dashboard" && pathname?.startsWith(item.url));
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                  <a href={item.url}>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

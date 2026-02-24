@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import {
   Activity,
@@ -8,6 +10,7 @@ import {
   ListIcon,
   Upload,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { NavMain } from "@/components/examples/dashboard/components/nav-main";
 import { NavSecondary } from "@/components/examples/dashboard/components/nav-secondary";
@@ -33,12 +36,15 @@ const data = {
 };
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname();
+  const isDashboardActive = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5" isActive={isDashboardActive}>
               <a href="/dashboard">
                 <Activity className="h-5 w-5" />
                 <span className="text-base font-semibold">Entrenamientos</span>
