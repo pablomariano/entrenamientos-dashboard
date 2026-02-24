@@ -8,11 +8,11 @@ import {
   Calendar,
   LayoutDashboardIcon,
   ListIcon,
-  Upload,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { NavMain } from "@/components/examples/dashboard/components/nav-main";
+import { ImportFileSheet } from "@/components/entrenamientos/import-file-sheet";
 import { SettingsSheet } from "@/components/entrenamientos/settings-sheet";
 import {
   Sidebar,
@@ -30,12 +30,6 @@ const data = {
     { title: "Calendario", url: "/dashboard/calendario", icon: Calendar },
     { title: "Análisis", url: "/dashboard/analisis", icon: BarChartIcon },
   ],
-  quickAction: {
-    title: "Importar archivo",
-    url: "/entrenamientos",
-    icon: Upload,
-    tooltip: "Importar archivo de entrenamientos",
-  },
 };
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -60,7 +54,7 @@ export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<type
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} quickAction={data.quickAction} />
+        <NavMain items={data.navMain} quickAction={<ImportFileSheet />} />
         <div className="mt-auto flex flex-col gap-1">
           <SettingsSheet />
         </div>
