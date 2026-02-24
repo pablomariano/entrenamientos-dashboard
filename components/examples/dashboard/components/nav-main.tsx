@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { PlusCircleIcon, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import {
@@ -27,6 +28,8 @@ export function NavMain({
   };
 }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
   const action = quickAction ?? {
     title: "Quick Create",
     url: "#",
@@ -60,8 +63,7 @@ export function NavMain({
         </SidebarMenu>
         <SidebarMenu>
           {items.map((item) => {
-            const isActive =
-              pathname === item.url || (pathname?.startsWith(item.url + "/") ?? false);
+            const isActive = mounted && pathname === item.url;
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>

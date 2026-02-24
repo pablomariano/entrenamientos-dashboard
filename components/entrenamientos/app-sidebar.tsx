@@ -4,9 +4,8 @@ import * as React from "react";
 import {
   Activity,
   BarChartIcon,
-  Heart,
+  Calendar,
   LayoutDashboardIcon,
-  LayoutTemplateIcon,
   ListIcon,
   Upload,
 } from "lucide-react";
@@ -26,10 +25,9 @@ import {
 const data = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
-    { title: "Sesiones", url: "/dashboard", icon: ListIcon },
-    { title: "Frecuencia Cardíaca", url: "/dashboard", icon: Heart },
-    { title: "Estadísticas", url: "/dashboard", icon: BarChartIcon },
-    { title: "Demo Tweakcn", url: "/dashboard/tweakcn", icon: LayoutTemplateIcon },
+    { title: "Sesiones", url: "/dashboard/sesiones", icon: ListIcon },
+    { title: "Calendario", url: "/dashboard/calendario", icon: Calendar },
+    { title: "Análisis", url: "/dashboard/analisis", icon: BarChartIcon },
   ],
   quickAction: {
     title: "Importar archivo",
@@ -41,7 +39,10 @@ const data = {
 
 export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const isDashboardActive = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  const isDashboardActive =
+    mounted && (pathname === "/dashboard" || pathname?.startsWith("/dashboard"));
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
