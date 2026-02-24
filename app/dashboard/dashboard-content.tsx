@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   TrainingData,
-  TrainingSession,
   processTrainingData,
   groupByMonth,
   groupDurationByMonth,
@@ -17,17 +16,11 @@ import { TRIMPEvolutionChart } from "@/components/entrenamientos/charts/trimp-ev
 import { HRChart } from "@/components/entrenamientos/charts/hr-chart";
 import { DurationChart } from "@/components/entrenamientos/charts/duration-chart";
 import { TrainingZonesDonutChart } from "@/components/entrenamientos/charts/training-zones-donut-chart";
-import { SessionsList } from "@/components/entrenamientos/sessions-list";
-import { HREvolutionChart } from "@/components/entrenamientos/charts/hr-evolution-chart";
-import { ExerciseMinutes } from "@/components/entrenamientos/charts/exercise-minutes";
-import { HRSessionChart } from "@/components/entrenamientos/charts/hr-session-chart";
 
 export function DashboardContent() {
   const router = useRouter();
   const [data, setData] = useState<TrainingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSession, setSelectedSession] = useState<TrainingSession | null>(null);
-  const hrChartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storedData = localStorage.getItem("trainingData");
@@ -45,18 +38,6 @@ export function DashboardContent() {
       setLoading(false);
     }
   }, [router]);
-
-  function handleSelectSession(session: TrainingSession) {
-    if (!session.has_hr || !session.hr_samples || session.hr_samples.length === 0) return;
-    if (selectedSession?.start_time === session.start_time) {
-      setSelectedSession(null);
-      return;
-    }
-    setSelectedSession(session);
-    setTimeout(() => {
-      hrChartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-  }
 
   if (loading) {
     return (
@@ -89,20 +70,6 @@ export function DashboardContent() {
           totalDurationSeconds={stats.totalDuration}
         />
       </div>
-      <div className="px-4 lg:px-6">
-        <SessionsList
-          sessions={data.sessions}
-          selectedSession={selectedSession}
-          onSelectSession={handleSelectSession}
-        />
-      </div>
-      {selectedSession && (
-        <div ref={hrChartRef} className="space-y-4 px-4 lg:px-6">
-          <HRSessionChart session={selectedSession} />
-          <ExerciseMinutes session={selectedSession} />
-          <HREvolutionChart session={selectedSession} onClose={() => setSelectedSession(null)} />
-        </div>
-      )}
     </div>
   );
 }
