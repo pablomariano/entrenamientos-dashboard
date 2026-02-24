@@ -13,7 +13,6 @@ const themeInitScript = `
   var d=window.matchMedia("(prefers-color-scheme: dark)").matches;
   var isDark=t==="dark"||(!t&&d);
   document.documentElement.classList.toggle("dark",!!isDark);
-  // Establecer color de fondo inmediatamente para evitar flash blanco
   if(isDark) {
     document.body.style.backgroundColor = 'hsl(218 29% 15%)';
   } else {

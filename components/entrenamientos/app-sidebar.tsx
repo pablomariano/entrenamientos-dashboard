@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Activity,
   BarChartIcon,
@@ -50,10 +51,10 @@ export function EntrenamientosAppSidebar({ ...props }: React.ComponentProps<type
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5" isActive={isDashboardActive}>
-              <a href="/dashboard">
+              <Link href="/dashboard">
                 <Activity className="h-5 w-5" />
                 <span className="text-base font-semibold">Entrenamientos</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { PlusCircleIcon, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import {
@@ -48,10 +49,10 @@ export function NavMain({
               className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
             >
               {quickAction ? (
-                <a href={action.url}>
+                <Link href={action.url}>
                   <action.icon />
                   <span>{action.title}</span>
-                </a>
+                </Link>
               ) : (
                 <>
                   <action.icon />
@@ -67,10 +68,10 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
-                  <a href={item.url}>
+                  <Link href={item.url}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );

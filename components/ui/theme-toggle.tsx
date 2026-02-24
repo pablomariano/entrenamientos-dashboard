@@ -7,12 +7,9 @@ export function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Leer el tema guardado en localStorage o usar el tema del sistema
     const savedTheme = localStorage.getItem("theme");
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    
     const shouldBeDark = savedTheme === "dark" || (!savedTheme && systemPrefersDark);
-    
     setIsDark(shouldBeDark);
     updateTheme(shouldBeDark);
   }, []);
