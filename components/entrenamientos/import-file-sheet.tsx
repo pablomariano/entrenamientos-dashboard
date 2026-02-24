@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { FileUploader } from "@/components/entrenamientos/file-uploader";
 import { TrainingData } from "@/lib/entrenamientos/data-processor";
+import { saveTrainingData } from "@/lib/entrenamientos/api";
 import {
   Sheet,
   SheetContent,
@@ -19,8 +20,8 @@ export function ImportFileSheet() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const handleDataLoaded = (data: TrainingData) => {
-    localStorage.setItem("trainingData", JSON.stringify(data));
+  const handleDataLoaded = async (data: TrainingData) => {
+    await saveTrainingData(data);
     setOpen(false);
     router.push("/dashboard/tweakcn");
   };
@@ -40,7 +41,7 @@ export function ImportFileSheet() {
         <SheetHeader>
           <SheetTitle>Importar entrenamientos</SheetTitle>
           <SheetDescription>
-            Arrastra tu archivo JSON o selecciónalo. Tus datos se procesan localmente.
+            Arrastra tu archivo JSON o selecciónalo. Los datos se guardarán en el servidor.
           </SheetDescription>
         </SheetHeader>
         <div className="mt-6">

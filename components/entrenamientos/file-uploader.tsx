@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { TrainingData } from "@/lib/entrenamientos/data-processor";
 
 interface FileUploaderProps {
-  onDataLoaded: (data: TrainingData) => void;
+  onDataLoaded: (data: TrainingData) => void | Promise<void>;
 }
 
 export function FileUploader({ onDataLoaded }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleFile = useCallback(
     (file: File) => {
@@ -22,18 +23,21 @@ export function FileUploader({ onDataLoaded }: FileUploaderProps) {
         return;
       }
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = JSON.parse(e.target?.result as string) as TrainingData;
           if (!data.sessions || !Array.isArray(data.sessions)) {
             throw new Error("El archivo JSON no tiene la estructura correcta");
           }
           setError(null);
+          setSaving(true);
+          await onDataLoaded(data);
           setSuccess(true);
-          setTimeout(() => { onDataLoaded(data); }, 500);
         } catch (err) {
-          setError(`Error al leer el archivo: ${err instanceof Error ? err.message : "Error desconocido"}`);
+          setError(err instanceof Error ? err.message : "Error desconocido");
           setSuccess(false);
+        } finally {
+          setSaving(false);
         }
       };
       reader.readAsText(file);
@@ -73,6 +77,7 @@ export function FileUploader({ onDataLoaded }: FileUploaderProps) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          aria-busy={saving}
         >
           <input type="file" accept=".json" onChange={handleFileInput} className="hidden" id="file-upload" />
           <label htmlFor="file-upload" className="cursor-pointer">
@@ -84,10 +89,10 @@ export function FileUploader({ onDataLoaded }: FileUploaderProps) {
               )}
               <div>
                 <p className="text-lg font-medium">
-                  {success ? "¡Archivo cargado correctamente!" : "Arrastra tu archivo aquí"}
+                  {success ? "¡Archivo cargado correctamente!" : saving ? "Guardando en servidor..." : "Arrastra tu archivo aquí"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {success ? "Redirigiendo al dashboard..." : "o haz clic para seleccionar"}
+                  {success ? "Redirigiendo al dashboard..." : saving ? "Espera..." : "o haz clic para seleccionar"}
                 </p>
               </div>
               {!success && <Button type="button" variant="outline">Seleccionar archivo</Button>}

@@ -35,3 +35,7 @@ next-env.d.ts
 
 # pnpm
 pnpm-lock.yaml
+
+# training data (user data, not versioned)
+/data/*
+!/data/.gitkeep

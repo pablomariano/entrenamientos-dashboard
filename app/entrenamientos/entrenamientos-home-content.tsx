@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FileUploader } from "@/components/entrenamientos/file-uploader";
 import { TrainingData } from "@/lib/entrenamientos/data-processor";
+import { saveTrainingData } from "@/lib/entrenamientos/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Download, Upload, BarChart3, Heart } from "lucide-react";
@@ -10,8 +11,8 @@ import { Activity, Download, Upload, BarChart3, Heart } from "lucide-react";
 export function EntrenamientosHomeContent() {
   const router = useRouter();
 
-  const handleDataLoaded = (data: TrainingData) => {
-    localStorage.setItem("trainingData", JSON.stringify(data));
+  const handleDataLoaded = async (data: TrainingData) => {
+    await saveTrainingData(data);
     router.push("/dashboard/tweakcn");
   };
 
@@ -101,7 +102,7 @@ export function EntrenamientosHomeContent() {
         <FileUploader onDataLoaded={handleDataLoaded} />
 
         <div className="max-w-2xl mx-auto mt-8 text-center text-white/80 text-sm">
-          <p>Tus datos se procesan localmente en tu navegador. No se envían a ningún servidor.</p>
+          <p>Tus datos se guardan en el servidor y se actualizan al importar o guardar cambios.</p>
         </div>
       </div>
     </main>
