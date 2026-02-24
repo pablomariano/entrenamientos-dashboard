@@ -94,8 +94,14 @@ export function TrainingZonesDonutChart({ zoneData, totalDurationSeconds }: Trai
               content={
                 <ChartTooltipContent
                   hideLabel
-                  formatter={(value: number, name: string) => [
-                    formatHours(value),
+                  formatter={(value, name) => [
+                    formatHours(
+                      typeof value === "number"
+                        ? value
+                        : Array.isArray(value)
+                          ? Number(value[0] ?? 0)
+                          : Number(value)
+                    ),
                     chartConfig[name as keyof typeof chartConfig]?.label ?? name,
                   ]}
                 />
