@@ -2,28 +2,25 @@
 
 import * as React from "react";
 import { Label, Pie, PieChart } from "recharts";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import { getHoursByZone, type ZoneHours } from "@/lib/entrenamientos/data-processor";
 import { Activity } from "lucide-react";
 
-const ZONE_LEGEND = [
-  { key: "Z1", label: "Z1 Recuperación", color: "hsl(var(--chart-3))" },
-  { key: "Z2", label: "Z2 Quema grasa", color: "hsl(var(--chart-2))" },
-  { key: "Z3", label: "Z3 Aeróbico", color: "hsl(var(--chart-4))" },
-  { key: "Z4", label: "Z4 Umbral", color: "hsl(var(--chart-5))" },
-  { key: "Z5", label: "Z5 Máximo", color: "hsl(var(--chart-1))" },
-  { key: "SinFC", label: "Sin FC", color: "hsl(var(--muted-foreground))" },
-] as const;
-
 const chartConfig = {
   horas: { label: "Horas" },
-  Z1: { label: ZONE_LEGEND[0].label, color: "var(--chart-3)" },
-  Z2: { label: ZONE_LEGEND[1].label, color: "var(--chart-2)" },
-  Z3: { label: ZONE_LEGEND[2].label, color: "var(--chart-4)" },
-  Z4: { label: ZONE_LEGEND[3].label, color: "var(--chart-5)" },
-  Z5: { label: ZONE_LEGEND[4].label, color: "var(--chart-1)" },
-  SinFC: { label: "Sin FC", color: "hsl(var(--muted-foreground))" },
+  Z1: { label: "Z1 Recuperación", color: "var(--chart-1)" },
+  Z2: { label: "Z2 Quema grasa", color: "var(--chart-2)" },
+  Z3: { label: "Z3 Aeróbico", color: "var(--chart-3)" },
+  Z4: { label: "Z4 Umbral", color: "var(--chart-4)" },
+  Z5: { label: "Z5 Máximo", color: "var(--chart-5)" },
 } satisfies ChartConfig;
 
 function formatHours(hours: number): string {
@@ -47,26 +44,17 @@ interface TrainingZonesDonutChartProps {
 }
 
 export function TrainingZonesDonutChart({ zoneData, totalDurationSeconds }: TrainingZonesDonutChartProps) {
-  const chartData = React.useMemo(() => {
-    const zonesWithTime = zoneData
-      .filter((z) => z.hours > 0)
-      .map((z) => ({
-        zone: z.label,
-        horas: z.hours,
-        fill: `var(--color-${z.label})`,
-      }));
-    const zoneTotalHours = zonesWithTime.reduce((acc, curr) => acc + curr.horas, 0);
-    const totalHours = totalDurationSeconds / 3600;
-    const sinFCHours = Math.round((totalHours - zoneTotalHours) * 100) / 100;
-    if (sinFCHours > 0.01) {
-      zonesWithTime.push({
-        zone: "SinFC",
-        horas: sinFCHours,
-        fill: "var(--color-SinFC)",
-      });
-    }
-    return zonesWithTime;
-  }, [zoneData, totalDurationSeconds]);
+  const chartData = React.useMemo(
+    () =>
+      zoneData
+        .filter((z) => z.hours > 0)
+        .map((z) => ({
+          zone: z.label,
+          horas: z.hours,
+          fill: `var(--color-${z.label})`,
+        })),
+    [zoneData]
+  );
 
   const totalHours = totalDurationSeconds / 3600;
 
@@ -108,18 +96,12 @@ export function TrainingZonesDonutChart({ zoneData, totalDurationSeconds }: Trai
                   hideLabel
                   formatter={(value: number, name: string) => [
                     formatHours(value),
-                    (chartConfig as Record<string, { label?: string }>)[name]?.label ?? name,
+                    chartConfig[name as keyof typeof chartConfig]?.label ?? name,
                   ]}
                 />
               }
             />
-            <Pie
-              data={chartData}
-              dataKey="horas"
-              nameKey="zone"
-              innerRadius={60}
-              strokeWidth={5}
-            >
+            <Pie data={chartData} dataKey="horas" nameKey="zone" innerRadius={60} strokeWidth={5}>
               <Label
                 content={({ viewBox }) => {
                   if (viewBox && "cx" in viewBox && "cy" in viewBox) {
@@ -137,20 +119,13 @@ export function TrainingZonesDonutChart({ zoneData, totalDurationSeconds }: Trai
                 }}
               />
             </Pie>
+            <ChartLegend
+              content={<ChartLegendContent nameKey="zone" />}
+              className="-translate-y-2 flex flex-wrap justify-center gap-2 *:basis-1/4 *:justify-center"
+            />
           </PieChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
-        {ZONE_LEGEND.filter((z) => chartData.some((d) => d.zone === z.key)).map((z) => (
-          <span key={z.key} className="flex items-center gap-1.5 text-muted-foreground">
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-sm"
-              style={{ backgroundColor: z.color }}
-            />
-            {z.label}
-          </span>
-        ))}
-      </CardFooter>
     </Card>
   );
 }
