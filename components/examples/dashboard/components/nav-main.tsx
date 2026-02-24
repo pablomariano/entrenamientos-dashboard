@@ -12,6 +12,24 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
+type QuickActionConfig = {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  tooltip?: string;
+};
+
+function isQuickActionConfig(x: unknown): x is QuickActionConfig {
+  return (
+    typeof x === "object" &&
+    x !== null &&
+    !React.isValidElement(x) &&
+    "url" in x &&
+    "title" in x &&
+    "icon" in x
+  );
+}
+
 export function NavMain({
   items,
   quickAction,
@@ -33,15 +51,14 @@ export function NavMain({
   const pathname = usePathname();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
-  const action =
-    quickAction && typeof quickAction === "object" && !React.isValidElement(quickAction)
-      ? quickAction
-      : {
-          title: "Quick Create",
-          url: "#",
-          icon: PlusCircleIcon,
-          tooltip: "Quick Create",
-        };
+  const action: QuickActionConfig = isQuickActionConfig(quickAction)
+    ? quickAction
+    : {
+        title: "Quick Create",
+        url: "#",
+        icon: PlusCircleIcon,
+        tooltip: "Quick Create",
+      };
   const isCustomQuickAction = React.isValidElement(quickAction);
 
   return (

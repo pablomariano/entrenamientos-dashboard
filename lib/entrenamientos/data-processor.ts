@@ -43,6 +43,7 @@ export interface ProcessedStats {
   maxHR: number;
   minHR: number;
   totalDistance: number;
+  avgTRIMP: number;
 }
 
 export type MonthlyStats = Record<string, number>;
@@ -67,6 +68,23 @@ export function processTrainingData(data: TrainingData): ProcessedStats {
 
   const totalDistance = sessionsWithGPS.reduce((sum, s) => sum + (s.distance ?? 0), 0);
 
+  // TRIMP (Banister): TRIMP = duration_min * ΔHR * 0.64 * e^(1.92 * ΔHR)
+  // ΔHR = (HRavg - HRrest) / (HRmax - HRrest)
+  const HRrest = minHR > 0 ? minHR : 60;
+  const HRmax = maxHR > 0 ? maxHR : 200;
+  const trimpValues: number[] = [];
+  for (const s of sessionsWithHR) {
+    const hrAvg = s.hr_avg ?? 0;
+    const hrMax = (s.hr_max ?? HRmax) > 0 ? (s.hr_max ?? HRmax) : HRmax;
+    if (hrAvg <= 0 || hrMax <= HRrest) continue;
+    const deltaHR = Math.max(0, Math.min(1, (hrAvg - HRrest) / (hrMax - HRrest)));
+    const durationMin = (s.duration_seconds ?? 0) / 60;
+    const trimp = durationMin * deltaHR * 0.64 * Math.exp(1.92 * deltaHR);
+    trimpValues.push(trimp);
+  }
+  const avgTRIMP =
+    trimpValues.length > 0 ? trimpValues.reduce((a, b) => a + b, 0) / trimpValues.length : 0;
+
   return {
     totalSessions: sessions.length,
     sessionsWithHR: sessionsWithHR.length,
@@ -76,6 +94,7 @@ export function processTrainingData(data: TrainingData): ProcessedStats {
     maxHR,
     minHR,
     totalDistance,
+    avgTRIMP,
   };
 }
 

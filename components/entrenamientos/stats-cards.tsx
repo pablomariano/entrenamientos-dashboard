@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Clock, Heart, MapPin } from "lucide-react";
+import { Activity, BarChart3, Clock, Heart } from "lucide-react";
 import { ProcessedStats, formatDuration } from "@/lib/entrenamientos/data-processor";
 
 interface StatsCardsProps {
@@ -17,7 +17,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{stats.totalSessions}</div>
           <p className="text-xs text-muted-foreground">
-            {stats.sessionsWithHR} con HR · {stats.sessionsWithGPS} con GPS
+            {stats.sessionsWithHR} con datos de HR
           </p>
         </CardContent>
       </Card>
@@ -45,12 +45,14 @@ export function StatsCards({ stats }: StatsCardsProps) {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Distancia Total</CardTitle>
-          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">TRIMP Promedio</CardTitle>
+          <BarChart3 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{(stats.totalDistance / 1000).toFixed(1)} km</div>
-          <p className="text-xs text-muted-foreground">{stats.sessionsWithGPS} sesiones con GPS</p>
+          <div className="text-2xl font-bold">{Math.round(stats.avgTRIMP)}</div>
+          <p className="text-xs text-muted-foreground">
+            carga de entrenamiento por sesión
+          </p>
         </CardContent>
       </Card>
     </div>

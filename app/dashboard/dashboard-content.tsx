@@ -70,13 +70,6 @@ export function DashboardContent() {
 
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-      <div className="px-4 lg:px-6">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard de Entrenamientos</h1>
-        <p className="text-muted-foreground">
-          {data.total_sessions} entrenamientos · Exportado el{" "}
-          {new Date(data.export_date).toLocaleDateString("es-ES")}
-        </p>
-      </div>
       <StatsCards stats={stats} />
       <div className="px-4 lg:px-6">
         <MonthlySessionsChart data={monthlyData} />
