@@ -5,8 +5,18 @@ import type { TrainingData } from "./data-processor";
 
 const BLOB_PATHNAME = "entrenamientos.json";
 
+function hasBlobToken(): boolean {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  return typeof token === "string" && token.length > 0;
+}
+
+/** Vercel y entornos serverless no permiten escribir en disco. */
+function isServerlessEnv(): boolean {
+  return process.env.VERCEL === "1";
+}
+
 function useBlobStorage(): boolean {
-  return typeof process.env.BLOB_READ_WRITE_TOKEN === "string" && process.env.BLOB_READ_WRITE_TOKEN.length > 0;
+  return hasBlobToken();
 }
 
 export function getDataFilePath(): string {
@@ -47,6 +57,13 @@ export async function writeTrainingData(data: TrainingData): Promise<void> {
       allowOverwrite: true,
     });
     return;
+  }
+
+  if (isServerlessEnv()) {
+    throw new Error(
+      "BLOB_READ_WRITE_TOKEN no está configurado. Crea un Blob Store en Vercel: Project → Storage → Create Blob Store. " +
+        "La variable se añadirá automáticamente al redesplegar."
+    );
   }
 
   const filePath = getDataFilePath();
