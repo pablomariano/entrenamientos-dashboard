@@ -26,7 +26,7 @@ export function getDataFilePath(): string {
 export async function readTrainingData(): Promise<TrainingData | null> {
   if (useBlobStorage()) {
     try {
-      const result = await get(BLOB_PATHNAME, { access: "private" });
+      const result = await get(BLOB_PATHNAME, { access: "private", useCache: false });
       if (!result || result.statusCode === 304 || !result.stream) return null;
       const text = await new Response(result.stream).text();
       return JSON.parse(text) as TrainingData;

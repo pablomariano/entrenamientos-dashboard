@@ -6,6 +6,7 @@ import { Upload } from "lucide-react";
 import { FileUploader } from "@/components/entrenamientos/file-uploader";
 import { TrainingData } from "@/lib/entrenamientos/data-processor";
 import { saveTrainingData } from "@/lib/entrenamientos/api";
+import { emitTrainingDataRefetch } from "@/lib/entrenamientos/training-data-context";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +23,7 @@ export function ImportFileSheet() {
 
   const handleDataLoaded = async (data: TrainingData) => {
     await saveTrainingData(data);
+    emitTrainingDataRefetch();
     setOpen(false);
     router.push("/dashboard/tweakcn");
   };

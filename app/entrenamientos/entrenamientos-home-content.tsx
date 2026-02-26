@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FileUploader } from "@/components/entrenamientos/file-uploader";
 import { TrainingData } from "@/lib/entrenamientos/data-processor";
 import { saveTrainingData } from "@/lib/entrenamientos/api";
+import { emitTrainingDataRefetch } from "@/lib/entrenamientos/training-data-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, Download, Upload, BarChart3, Heart } from "lucide-react";
@@ -13,6 +14,7 @@ export function EntrenamientosHomeContent() {
 
   const handleDataLoaded = async (data: TrainingData) => {
     await saveTrainingData(data);
+    emitTrainingDataRefetch();
     router.push("/dashboard/tweakcn");
   };
 

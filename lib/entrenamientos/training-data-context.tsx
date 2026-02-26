@@ -12,11 +12,21 @@ import { useRouter } from "next/navigation";
 import type { TrainingData } from "./data-processor";
 import { fetchTrainingData, saveTrainingData } from "./api";
 
+const REFETCH_EVENT = "training-data-refetch";
+
+/** Emitir desde fuera del provider (ej. tras importar) para forzar recarga de datos */
+export function emitTrainingDataRefetch() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(REFETCH_EVENT));
+  }
+}
+
 interface TrainingDataContextValue {
   data: TrainingData | null;
   loading: boolean;
   saving: boolean;
   save: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 const TrainingDataContext = createContext<TrainingDataContextValue | null>(null);
@@ -27,21 +37,32 @@ export function TrainingDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetchTrainingData()
-      .then((parsedData) => {
-        if (!parsedData) {
-          router.push("/entrenamientos");
-          return;
-        }
-        setData(parsedData);
-      })
-      .catch((error) => {
-        console.error("Error loading data:", error);
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const parsedData = await fetchTrainingData();
+      if (!parsedData) {
         router.push("/entrenamientos");
-      })
-      .finally(() => setLoading(false));
+        return;
+      }
+      setData(parsedData);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      router.push("/entrenamientos");
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  useEffect(() => {
+    const handler = () => refetch();
+    window.addEventListener(REFETCH_EVENT, handler);
+    return () => window.removeEventListener(REFETCH_EVENT, handler);
+  }, [refetch]);
 
   const save = useCallback(async () => {
     if (!data) return;
@@ -55,7 +76,7 @@ export function TrainingDataProvider({ children }: { children: ReactNode }) {
     }
   }, [data]);
 
-  const value: TrainingDataContextValue = { data, loading, saving, save };
+  const value: TrainingDataContextValue = { data, loading, saving, save, refetch };
 
   return (
     <TrainingDataContext.Provider value={value}>
