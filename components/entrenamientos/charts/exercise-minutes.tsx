@@ -103,8 +103,7 @@ export function ExerciseMinutes({ session }: ExerciseMinutesProps) {
         <div className="flex items-end gap-3">
           <div>
             <p className="text-4xl font-bold tracking-tight">
-              {Math.floor(activeSecs / 60)}
-              <span className="text-lg font-normal text-muted-foreground ml-1">min</span>
+              {formatSeconds(activeSecs)}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               en zonas activas (Z2–Z5) de{" "}
