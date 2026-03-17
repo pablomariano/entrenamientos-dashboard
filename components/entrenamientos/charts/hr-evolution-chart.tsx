@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -9,6 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,6 +74,21 @@ function LapMarkerLabel(props: {
 const HR_MIN_VALID = 30;
 const HR_MAX_VALID = 250;
 
+const HR_ZONES = [
+  { zone: 1, label: "Z1", min: 0, max: 100, fill: "#60a5fa", opacity: 0.15 },
+  { zone: 2, label: "Z2", min: 100, max: 130, fill: "#34d399", opacity: 0.18 },
+  { zone: 3, label: "Z3", min: 130, max: 155, fill: "#fbbf24", opacity: 0.2 },
+  { zone: 4, label: "Z4", min: 155, max: 175, fill: "#f97316", opacity: 0.22 },
+  { zone: 5, label: "Z5", min: 175, max: 999, fill: "#ef4444", opacity: 0.25 },
+];
+
+function formatMinutesToTime(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = Math.floor(mins % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}`;
+  return `0:${String(m).padStart(2, "0")}`;
+}
+
 export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
   const validSamples = (session.hr_samples ?? []).filter(
     (s) => s.hr != null && s.hr >= HR_MIN_VALID && s.hr <= HR_MAX_VALID
@@ -88,9 +105,12 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
   const maxTimeMins = chartData.length > 0 ? Math.max(...chartData.map((d) => d.time)) : 0;
   const xMax = Math.ceil(maxTimeMins / 5) * 5;
 
-  const lapSeparators = getLapSeparators(session.laps ?? []);
-  const date = new Date(session.start_time);
-  const dateLabel = date.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const lapSeparators = useMemo(() => getLapSeparators(session.laps ?? []), [session.laps]);
+  const date = useMemo(() => new Date(session.start_time), [session.start_time]);
+  const dateLabel = useMemo(
+    () => date.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+    [date]
+  );
 
   return (
     <Card className="mt-6 scroll-mt-4" id="hr-evolution-chart">
@@ -106,10 +126,10 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
               {session.hr_avg && <span>Prom: <strong>{session.hr_avg} bpm</strong></span>}
               {session.hr_max && <span>Máx: <strong>{session.hr_max} bpm</strong></span>}
               {session.hr_min && <span>Mín: <strong>{session.hr_min} bpm</strong></span>}
-              <span className="text-muted-foreground/60">{validSamples.length} muestras</span>
+              <span className="text-muted-foreground/75">{validSamples.length} muestras</span>
             </div>
             {lapSeparators.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {[
                   ...lapSeparators.map((lap, i) => {
                     const prevTime = i === 0 ? 0 : lapSeparators[i - 1].time_seconds;
@@ -126,10 +146,21 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
                     ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
                     : `${m}:${String(s).padStart(2, "0")}`;
                   return (
-                    <span key={key} className="inline-flex items-center gap-1.5 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5">
-                      <span className="w-3 border-t-2 border-dashed border-primary/40 inline-block" />
-                      Lap {lapNumber} — {label}
-                    </span>
+                    <div
+                      key={key}
+                      className="inline-flex items-center gap-2 text-xs bg-indigo-500/15 border border-indigo-500/30 rounded-lg px-3 py-1.5 transition-all hover:bg-indigo-500/20 hover:border-indigo-500/40"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                          L{lapNumber}
+                        </span>
+                      </div>
+                      <span className="w-px h-3 bg-indigo-500/20" />
+                      <span className="font-medium tabular-nums text-foreground">
+                        {label}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
@@ -147,31 +178,34 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
             Esta sesión no tiene muestras de frecuencia cardíaca disponibles.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={380}>
+          <>
+            <ResponsiveContainer width="100%" height={380}>
             <LineChart data={chartData} margin={{ top: 40, right: 30, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              {HR_ZONES.map((z) => {
+                const y1 = Math.max(z.min, yMin);
+                const y2 = Math.min(z.max === 999 ? yMax : z.max, yMax);
+                if (y1 >= y2) return null;
+                return <ReferenceArea key={z.zone} y1={y1} y2={y2} fill={z.fill} fillOpacity={z.opacity} ifOverflow="hidden" />;
+              })}
               <XAxis
                 dataKey="time"
                 type="number"
                 domain={[0, xMax]}
                 tickCount={Math.min(12, Math.floor(xMax / (xMax <= 30 ? 2 : xMax <= 60 ? 5 : 10)) + 1)}
-                tickFormatter={(v) => `${v} min`}
+                tickFormatter={(v) => formatMinutesToTime(v)}
                 fontSize={11}
-                label={{ value: "Tiempo (minutos)", position: "insideBottom", offset: -12, fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                label={{ value: "Tiempo", position: "insideBottom", offset: -12, fontSize: 12, fill: "var(--muted-foreground)" }}
               />
               <YAxis
                 domain={[yMin, yMax]}
                 tickFormatter={(v) => `${v}`}
                 fontSize={11}
-                label={{ value: "FC (bpm)", angle: -90, position: "insideLeft", offset: 12, fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                label={{ value: "FC (bpm)", angle: -90, position: "insideLeft", offset: 12, fontSize: 12, fill: "var(--muted-foreground)" }}
               />
               <Tooltip
                 formatter={(value: number) => [`${value} bpm`, "FC"]}
-                labelFormatter={(val: number) => {
-                  const mins = Math.floor(val);
-                  const secs = Math.round((val - mins) * 60);
-                  return `${mins}:${String(secs).padStart(2, "0")} min`;
-                }}
+                labelFormatter={(val: number) => formatMinutesToTime(val)}
                 contentStyle={{ fontSize: 13 }}
               />
               <ReferenceLine
@@ -209,6 +243,29 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
               />
             </LineChart>
           </ResponsiveContainer>
+          <div className="mt-3 flex flex-wrap justify-center gap-2.5">
+            {HR_ZONES.map((z) => (
+              <div 
+                key={z.zone} 
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-all hover:scale-105"
+                style={{ 
+                  backgroundColor: `${z.fill}20`,
+                  borderColor: `${z.fill}40`,
+                  color: z.fill
+                }}
+              >
+                <span 
+                  className="inline-block h-2.5 w-2.5 rounded-sm ring-1 ring-white/30" 
+                  style={{ backgroundColor: z.fill }} 
+                />
+                <span className="font-semibold">{z.label}</span>
+                <span className="text-xs opacity-90">
+                  {z.max === 999 ? `>${z.min}` : `${z.min}–${z.max}`}
+                </span>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </CardContent>
     </Card>
