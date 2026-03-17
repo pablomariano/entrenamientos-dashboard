@@ -77,19 +77,6 @@ def calcular_trimp(hr_samples, user_max_hr, user_resting_hr, sample_rate_seconds
     return {"trimp": trimp, "level": level, "description": desc}
 
 
-def filtrar_spikes_hr(muestras_hr, max_delta_bpm=40):
-    """Descarta muestras con saltos fisiológicamente imposibles entre consecutivas."""
-    if not muestras_hr:
-        return muestras_hr
-    resultado = [muestras_hr[0]]
-    for i in range(1, len(muestras_hr)):
-        prev_hr = resultado[-1]["hr"]
-        curr_hr = muestras_hr[i]["hr"]
-        if abs(curr_hr - prev_hr) <= max_delta_bpm:
-            resultado.append(muestras_hr[i])
-    return resultado
-
-
 # ---------------------------------------------------------------------------
 # Detección de laps (sin GPS)
 # ---------------------------------------------------------------------------
@@ -149,6 +136,152 @@ def detectar_laps_nogps(sess):
         laps_header = None
 
     return laps, laps_header, lap_offsets
+
+
+# ---------------------------------------------------------------------------
+# Parser custom de HR que salta bloques de lap
+# ---------------------------------------------------------------------------
+
+def _decodificar_hr_muestra(bits, pos, last_hr):
+    """
+    Decodifica una muestra HR desde la posición pos en el stream de bits.
+    Replica el algoritmo de sess._process_hr_bits() de la librería.
+    
+    Retorna (hr_value, bits_consumed).
+    """
+    if pos + 6 > len(bits):
+        return None, 0
+    
+    prefix = bits[pos:pos+2]
+    
+    # Full con prefijo '01': offset 3, lee bits[pos+3:pos+11] (8 bits)
+    if prefix == '01':
+        if pos + 11 > len(bits):
+            return None, 0
+        hr = int(bits[pos+3:pos+11], 2)
+        return hr, 11
+    
+    # Full sin prefijo '00': offset 0, lee bits[pos+0:pos+11] (11 bits completos)
+    elif prefix == '00':
+        if pos + 11 > len(bits):
+            return None, 0
+        hr = int(bits[pos:pos+11], 2)
+        return hr, 11
+    
+    # Delta positivo '10': 6 bits, delta en bits[pos+2:pos+6]
+    elif prefix == '10':
+        if pos + 6 > len(bits):
+            return None, 0
+        delta = int(bits[pos+2:pos+6], 2)
+        hr = (last_hr or 0) + delta
+        return hr, 6
+    
+    # Delta negativo '11': 6 bits, delta en complemento a 2
+    elif prefix == '11':
+        if pos + 6 > len(bits):
+            return None, 0
+        delta = -((int(bits[pos+2:pos+6], 2) ^ 0b1111) + 1)
+        hr = (last_hr or 0) + delta
+        return hr, 6
+    
+    return None, 0
+
+
+def parsear_hr_custom(sess):
+    """
+    Parser de HR single-pass: detecta bloques de lap y parsea HR con el mismo
+    cursor, garantizando que no hay desfase entre detección y parsing.
+
+    Usa la misma lógica de frozen-fields que la librería (avanza 1 bit cuando
+    el campo está congelado).
+    """
+    bits        = sess._samples_bits
+    sample_rate = sess.info.get('sample_rate', 5)
+    duration    = sess.duration
+    max_samples = duration // sample_rate if duration and sample_rate else None
+
+    cursor          = 0
+    n_samples       = 0
+    hr_values       = []
+    last_hr         = None
+    zero_delta_count = 0
+    is_frozen        = False
+
+    while cursor < len(bits) - 6:
+        if max_samples is not None and n_samples >= max_samples:
+            break
+
+        # Detectar bloque de lap en la posición actual del cursor
+        if cursor + LAP_DATA_BITS <= len(bits):
+            chunk   = bits[cursor:cursor + LAP_DATA_BITS]
+            density = chunk.count('1') / LAP_DATA_BITS
+            if density < LAP_DENSITY_MAX:
+                # Leer todos los bits del bloque manteniendo estado, descartar
+                lap_end = cursor + LAP_DATA_BITS
+                while cursor < lap_end:
+                    if cursor + 2 > len(bits):
+                        break
+                    prefix = bits[cursor:cursor+2]
+                    if is_frozen and prefix != '01':
+                        cursor += 1
+                    else:
+                        hr, consumed = _decodificar_hr_muestra(bits, cursor, last_hr)
+                        if not consumed:
+                            break
+                        # Mantener estado frozen
+                        if prefix in ('10', '11'):
+                            raw_delta = (hr or 0) - (last_hr or 0)
+                            if raw_delta == 0:
+                                zero_delta_count += 1
+                                is_frozen = zero_delta_count >= 2
+                            else:
+                                zero_delta_count = 0
+                                is_frozen = False
+                        else:
+                            zero_delta_count = 0
+                            is_frozen = False
+                        if hr is not None and _hr_valido(hr):
+                            last_hr = hr
+                        cursor += consumed
+                        n_samples += 1
+                        hr_values.append(None)  # descartar muestra de lap
+                cursor = lap_end  # asegurar que superamos el bloque completo
+                continue
+
+        # Muestra HR normal
+        if cursor + 2 > len(bits):
+            break
+        prefix = bits[cursor:cursor+2]
+
+        if is_frozen and prefix != '01':
+            hr       = last_hr
+            consumed = 1
+        else:
+            hr, consumed = _decodificar_hr_muestra(bits, cursor, last_hr)
+            if not consumed:
+                break
+            if prefix in ('10', '11'):
+                raw_delta = (hr or 0) - (last_hr or 0)
+                if raw_delta == 0:
+                    zero_delta_count += 1
+                    is_frozen = zero_delta_count >= 2
+                else:
+                    zero_delta_count = 0
+                    is_frozen = False
+            else:
+                zero_delta_count = 0
+                is_frozen = False
+
+        cursor    += consumed
+        n_samples += 1
+
+        if hr is not None and _hr_valido(hr):
+            hr_values.append(hr)
+            last_hr = hr
+        else:
+            hr_values.append(None)
+
+    return hr_values
 
 
 # ---------------------------------------------------------------------------
@@ -219,27 +352,22 @@ def parsear_sesion_completa(raw_session):
 
         if sess.has_hr:
             try:
-                sess.parse_samples()
+                # Usar parser custom que salta bloques de lap correctamente
+                hr_values = parsear_hr_custom(sess)
                 muestras_parseadas = True
 
-                sample_rate  = sess.info.get("sample_rate", 5)
-                start_time   = sess.start_time
-                max_seconds  = sess.duration
+                sample_rate = sess.info.get("sample_rate", 5)
+                start_time  = sess.start_time
 
-                muestras_raw = []
-                for i, sample in enumerate(sess.samples):
-                    t = i * sample_rate
-                    if t >= max_seconds:
-                        break
-                    if sample.hr is not None and _hr_valido(sample.hr):
-                        muestras_raw.append({
-                            "timestamp":     start_time.timestamp() + t,
-                            "time_seconds":  t,
+                for i, hr in enumerate(hr_values):
+                    if hr is not None:
+                        t = i * sample_rate
+                        muestras_hr.append({
+                            "timestamp":      start_time.timestamp() + t,
+                            "time_seconds":   t,
                             "time_formatted": f"{t // 60:02d}:{t % 60:02d}",
-                            "hr":            sample.hr,
+                            "hr":             hr,
                         })
-
-                muestras_hr = filtrar_spikes_hr(muestras_raw)
             except Exception:
                 muestras_parseadas = False
 
