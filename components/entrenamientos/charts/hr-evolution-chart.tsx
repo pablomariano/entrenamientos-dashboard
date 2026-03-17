@@ -12,9 +12,9 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Heart, X } from "lucide-react";
 import { TrainingSession, Lap } from "@/lib/entrenamientos/data-processor";
 
 interface HREvolutionChartProps {
@@ -82,6 +82,13 @@ const HR_ZONES = [
   { zone: 5, label: "Z5", min: 175, max: 999, fill: "#ef4444", opacity: 0.25 },
 ];
 
+function getZoneColor(hr: number): string {
+  for (const z of [...HR_ZONES].reverse()) {
+    if (hr >= z.min) return z.fill;
+  }
+  return "var(--muted-foreground)";
+}
+
 function formatMinutesToTime(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = Math.floor(mins % 60);
@@ -112,24 +119,43 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
     [date]
   );
 
+  const avgColor = getZoneColor(avgHR);
+
   return (
     <Card className="mt-6 scroll-mt-4" id="hr-evolution-chart">
-      <CardHeader>
+      <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <CardTitle className="flex items-center gap-2">
-              <span>Evolución de Frecuencia Cardíaca</span>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Heart className="w-4 h-4" />
+              Evolución de Frecuencia Cardíaca
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1 capitalize">{dateLabel}</p>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground mt-1">
-              <span>{session.duration_formatted}</span>
-              {session.hr_avg && <span>Prom: <strong>{session.hr_avg} bpm</strong></span>}
-              {session.hr_max && <span>Máx: <strong>{session.hr_max} bpm</strong></span>}
-              {session.hr_min && <span>Mín: <strong>{session.hr_min} bpm</strong></span>}
-              <span className="text-muted-foreground/75">{validSamples.length} muestras</span>
+            <CardDescription className="capitalize">{dateLabel}</CardDescription>
+            <div className="flex flex-wrap gap-4 pt-1 text-sm">
+              <div>
+                <span className="text-muted-foreground">Prom </span>
+                <span className="font-medium tabular-nums" style={{ color: avgColor }}>{Math.round(avgHR)}</span>
+                <span className="text-muted-foreground"> bpm</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Máx </span>
+                <span className="font-medium tabular-nums text-destructive">{maxHR}</span>
+                <span className="text-muted-foreground"> bpm</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Mín </span>
+                <span className="font-medium tabular-nums" style={{ color: HR_ZONES[0].fill }}>{minHR}</span>
+                <span className="text-muted-foreground"> bpm</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{session.duration_formatted}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{validSamples.length} muestras</span>
+              </div>
             </div>
             {lapSeparators.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {[
                   ...lapSeparators.map((lap, i) => {
                     const prevTime = i === 0 ? 0 : lapSeparators[i - 1].time_seconds;
@@ -139,28 +165,13 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
                     ? [{ key: "lap-last", lapNumber: lapSeparators.length + 1, duration: session.duration_seconds - lapSeparators[lapSeparators.length - 1].time_seconds }]
                     : []),
                 ].map(({ key, lapNumber, duration }) => {
-                  const h = Math.floor(duration / 3600);
-                  const m = Math.floor((duration % 3600) / 60);
+                  const m = Math.floor(duration / 60);
                   const s = duration % 60;
-                  const label = h > 0
-                    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-                    : `${m}:${String(s).padStart(2, "0")}`;
                   return (
-                    <div
-                      key={key}
-                      className="inline-flex items-center gap-2 text-xs bg-indigo-500/15 border border-indigo-500/30 rounded-lg px-3 py-1.5 transition-all hover:bg-indigo-500/20 hover:border-indigo-500/40"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1 h-1 rounded-full bg-indigo-500" />
-                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                          L{lapNumber}
-                        </span>
-                      </div>
-                      <span className="w-px h-3 bg-indigo-500/20" />
-                      <span className="font-medium tabular-nums text-foreground">
-                        {label}
-                      </span>
-                    </div>
+                    <span key={key} className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                      <span className="inline-block w-2.5 border-t border-dashed border-primary/60" />
+                      L{lapNumber} {m}:{String(s).padStart(2, "0")}
+                    </span>
                   );
                 })}
               </div>

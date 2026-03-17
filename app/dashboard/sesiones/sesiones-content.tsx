@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { TrainingSession } from "@/lib/entrenamientos/data-processor";
 import { useTrainingData } from "@/lib/entrenamientos/training-data-context";
 import { SessionsList } from "@/components/entrenamientos/sessions-list";
-import { HRSessionChart } from "@/components/entrenamientos/charts/hr-session-chart";
 import { ExerciseMinutes } from "@/components/entrenamientos/charts/exercise-minutes";
 import { HREvolutionChart } from "@/components/entrenamientos/charts/hr-evolution-chart";
 
@@ -46,7 +45,6 @@ export function SesionesContent() {
       </div>
       {selectedSession && (
         <div ref={hrChartRef} className="space-y-4 px-4 lg:px-6">
-          <HRSessionChart session={selectedSession} />
           <ExerciseMinutes session={selectedSession} />
           <HREvolutionChart session={selectedSession} onClose={() => setSelectedSession(null)} />
         </div>
