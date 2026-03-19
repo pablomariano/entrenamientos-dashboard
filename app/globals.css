@@ -134,3 +134,13 @@
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
+
+/* Calendar (react-day-picker) — integración con tema */
+.rdp-root {
+  --rdp-accent-color: var(--primary);
+  --rdp-accent-background-color: var(--accent);
+  --rdp-range_middle-background-color: var(--accent);
+  --rdp-range_start-date-background-color: var(--primary);
+  --rdp-range_end-date-background-color: var(--primary);
+  --rdp-today-color: var(--primary);
+}

@@ -20,7 +20,7 @@ export default function DashboardLayout({
       <SidebarInset>
         <TrainingDataProvider>
           <EntrenamientosSiteHeader />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <div className="@container/main flex flex-1 flex-col gap-2">{children}</div>
         </TrainingDataProvider>
       </SidebarInset>
     </SidebarProvider>

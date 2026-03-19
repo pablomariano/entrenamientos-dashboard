@@ -7,6 +7,7 @@ import {
   BarChartIcon,
   Calendar,
   LayoutDashboardIcon,
+  LayoutGrid,
   ListIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -29,6 +30,7 @@ const data = {
     { title: "Sesiones", url: "/dashboard/sesiones", icon: ListIcon },
     { title: "Calendario", url: "/dashboard/calendario", icon: Calendar },
     { title: "Análisis", url: "/dashboard/analisis", icon: BarChartIcon },
+    { title: "Cards", url: "/dashboard/cards", icon: LayoutGrid },
   ],
 };
 

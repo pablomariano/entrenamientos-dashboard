@@ -115,7 +115,14 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
   const lapSeparators = useMemo(() => getLapSeparators(session.laps ?? []), [session.laps]);
   const date = useMemo(() => new Date(session.start_time), [session.start_time]);
   const dateLabel = useMemo(
-    () => date.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+    () =>
+      date.toLocaleDateString("es-ES", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
     [date]
   );
 
