@@ -39,3 +39,5 @@ pnpm-lock.yaml
 # training data (user data, not versioned)
 /data/*
 !/data/.gitkeep
+
+/generated/prisma

@@ -1,0 +1,28 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  date        DateTime
+  duration    Int      // en segundos
+  sport       String   // "Running", "Cycling", etc.
+  distance    Float?   // en km
+  avgHr       Int?
+  maxHr       Int?
+  calories    Int?
+  trimp       Float?
+  laps        Json?    // Para guardar los laps como JSON
+  rawData     Json?    // El archivo original procesado
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
