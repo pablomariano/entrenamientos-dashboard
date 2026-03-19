@@ -365,8 +365,8 @@ export function SesionesNeonView({ sessions }: SesionesNeonViewProps) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card mx-4 lg:mx-6">
-        <div className="overflow-x-auto">
+      <div className="flex flex-col overflow-hidden rounded-xl border bg-card mx-4 lg:mx-6">
+        <div className="max-h-[min(70vh,600px)] overflow-y-auto overflow-x-auto">
           <DndContext
             collisionDetection={closestCenter}
             modifiers={[restrictToVerticalAxis]}
@@ -374,7 +374,7 @@ export function SesionesNeonView({ sessions }: SesionesNeonViewProps) {
             sensors={sensors}
           >
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-muted/95 backdrop-blur supports-[backdrop-filter]:bg-muted/80">
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead className="w-10 px-2" />
                   {columnVisibility.header !== false && (
