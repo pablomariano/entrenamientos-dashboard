@@ -365,7 +365,7 @@ export function SessionsList({ sessions }: SessionsListProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-hidden rounded-b-xl">
+          <div className="overflow-x-auto rounded-b-xl">
             <DndContext
               collisionDetection={closestCenter}
               modifiers={[restrictToVerticalAxis]}
