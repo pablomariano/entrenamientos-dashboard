@@ -18,12 +18,13 @@ interface ZoneData {
   bgClass: string;
 }
 
+// Zonas usando variables del tema
 const HR_ZONES = [
-  { zone: 1, label: "Recuperación", min: 0, max: 100, color: "#60a5fa", bgClass: "bg-blue-400" },
-  { zone: 2, label: "Quema grasa", min: 100, max: 130, color: "#34d399", bgClass: "bg-emerald-400" },
-  { zone: 3, label: "Aeróbico", min: 130, max: 155, color: "#fbbf24", bgClass: "bg-amber-400" },
-  { zone: 4, label: "Umbral", min: 155, max: 175, color: "#f97316", bgClass: "bg-orange-500" },
-  { zone: 5, label: "Máximo", min: 175, max: 999, color: "#ef4444", bgClass: "bg-red-500" },
+  { zone: 1, label: "Recuperación", min: 0, max: 100, color: "var(--chart-3)", bgClass: "bg-chart-3" },
+  { zone: 2, label: "Quema grasa", min: 100, max: 130, color: "var(--chart-2)", bgClass: "bg-chart-2" },
+  { zone: 3, label: "Aeróbico", min: 130, max: 155, color: "var(--chart-4)", bgClass: "bg-chart-4" },
+  { zone: 4, label: "Umbral", min: 155, max: 175, color: "var(--chart-5)", bgClass: "bg-chart-5" },
+  { zone: 5, label: "Máximo", min: 175, max: 999, color: "var(--chart-1)", bgClass: "bg-chart-1" },
 ];
 
 const HR_MIN_VALID = 30;

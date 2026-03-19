@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Heart, X } from "lucide-react";
 import { TrainingSession, Lap } from "@/lib/entrenamientos/data-processor";
 
@@ -62,8 +63,8 @@ function LapMarkerLabel(props: {
   const h = 19;
   return (
     <g>
-      <polygon points={`${x},${y + h + 5} ${x - 5},${y + h - 1} ${x + 5},${y + h - 1}`} fill="#4f46e5" opacity={0.9} />
-      <rect x={x - w / 2} y={y + 4} width={w} height={h} rx={4} fill="#4f46e5" opacity={0.9} />
+      <polygon points={`${x},${y + h + 5} ${x - 5},${y + h - 1} ${x + 5},${y + h - 1}`} fill="var(--primary)" opacity={0.9} />
+      <rect x={x - w / 2} y={y + 4} width={w} height={h} rx={4} fill="var(--primary)" opacity={0.9} />
       <text x={x} y={y + 4 + h / 2 + 4} textAnchor="middle" fontSize={10} fontWeight="bold" fill="white">
         Lap {lapNumber}
       </text>
@@ -74,12 +75,13 @@ function LapMarkerLabel(props: {
 const HR_MIN_VALID = 30;
 const HR_MAX_VALID = 250;
 
+// Zonas de FC usando variables del tema
 const HR_ZONES = [
-  { zone: 1, label: "Z1", min: 0, max: 100, fill: "#60a5fa", opacity: 0.15 },
-  { zone: 2, label: "Z2", min: 100, max: 130, fill: "#34d399", opacity: 0.18 },
-  { zone: 3, label: "Z3", min: 130, max: 155, fill: "#fbbf24", opacity: 0.2 },
-  { zone: 4, label: "Z4", min: 155, max: 175, fill: "#f97316", opacity: 0.22 },
-  { zone: 5, label: "Z5", min: 175, max: 999, fill: "#ef4444", opacity: 0.25 },
+  { zone: 1, label: "Z1", min: 0, max: 100, fill: "var(--chart-3)", opacity: 0.15, legendClass: "bg-chart-3/20 border-chart-3/40 text-chart-3" },
+  { zone: 2, label: "Z2", min: 100, max: 130, fill: "var(--chart-2)", opacity: 0.18, legendClass: "bg-chart-2/20 border-chart-2/40 text-chart-2" },
+  { zone: 3, label: "Z3", min: 130, max: 155, fill: "var(--chart-4)", opacity: 0.2, legendClass: "bg-chart-4/20 border-chart-4/40 text-chart-4" },
+  { zone: 4, label: "Z4", min: 155, max: 175, fill: "var(--chart-5)", opacity: 0.22, legendClass: "bg-chart-5/20 border-chart-5/40 text-chart-5" },
+  { zone: 5, label: "Z5", min: 175, max: 999, fill: "var(--chart-1)", opacity: 0.25, legendClass: "bg-chart-1/20 border-chart-1/40 text-chart-1" },
 ];
 
 function getZoneColor(hr: number): string {
@@ -228,10 +230,10 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
               />
               <ReferenceLine
                 y={avgHR}
-                stroke="hsl(174 72% 45%)"
+                stroke="var(--chart-3)"
                 strokeDasharray="5 5"
                 strokeWidth={1.5}
-                label={{ value: `Prom ${Math.round(avgHR)} bpm`, position: "insideTopRight", fontSize: 11, fill: "hsl(174 72% 35%)" }}
+                label={{ value: `Prom ${Math.round(avgHR)} bpm`, position: "insideTopRight", fontSize: 11, fill: "var(--chart-3)" }}
               />
               {lapSeparators.map((lap, i) => {
                 const xVal = lap.time_seconds / 60;
@@ -241,7 +243,7 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
                   <ReferenceLine
                     key={`ref-lap-${i}`}
                     x={xVal}
-                    stroke="#4f46e5"
+                    stroke="var(--primary)"
                     strokeDasharray="6 3"
                     strokeWidth={2}
                     label={(props: { viewBox?: { x: number; y: number; width: number; height: number } }) => (
@@ -253,10 +255,10 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
               <Line
                 type="monotone"
                 dataKey="hr"
-                stroke="hsl(0 84.2% 60.2%)"
+                stroke="var(--destructive)"
                 strokeWidth={1.5}
                 dot={false}
-                activeDot={{ r: 4, fill: "hsl(0 84.2% 60.2%)" }}
+                activeDot={{ r: 4, fill: "var(--destructive)" }}
                 isAnimationActive={chartData.length < 500}
               />
             </LineChart>
@@ -265,15 +267,10 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
             {HR_ZONES.map((z) => (
               <div 
                 key={z.zone} 
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-all hover:scale-105"
-                style={{ 
-                  backgroundColor: `${z.fill}20`,
-                  borderColor: `${z.fill}40`,
-                  color: z.fill
-                }}
+                className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-all hover:scale-105", z.legendClass)}
               >
                 <span 
-                  className="inline-block h-2.5 w-2.5 rounded-sm ring-1 ring-white/30" 
+                  className="inline-block h-2.5 w-2.5 rounded-sm ring-1 ring-white/30 shrink-0" 
                   style={{ backgroundColor: z.fill }} 
                 />
                 <span className="font-semibold">{z.label}</span>
