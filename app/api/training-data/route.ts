@@ -5,7 +5,8 @@ import { ImportPayloadSchema } from "@/lib/schemas";
 import { computeFingerprint } from "@/lib/sessions/fingerprint";
 import { generateSessionTitle } from "@/lib/sessions/title";
 import { calculateTRIMP, calcUserHR } from "@/lib/sessions/trimp";
-import type { Sport } from "@prisma/client";
+import { calculateCardiacDrift } from "@/lib/sessions/cardiac-drift";
+import type { Sport } from "@/generated/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,13 @@ export async function POST(request: NextRequest) {
         ? calculateTRIMP(raw.duration_seconds, hrAvg, hrMax, hrRest, userHrMax)
         : null;
 
+      const hrSamplesForDrift = (raw.hr_samples ?? [])
+        .filter((s) => s.hr >= 40 && s.hr <= 250)
+        .map((s) => ({ timeOffsetSeconds: Math.round(s.time_seconds), hr: s.hr }));
+      const drift = sport === "SPINNING"
+        ? calculateCardiacDrift(hrSamplesForDrift, raw.duration_seconds)
+        : null;
+
       await prisma.trainingSession.create({
         data: {
           userId,
@@ -149,6 +157,7 @@ export async function POST(request: NextRequest) {
                 durationSeconds: Math.round(l.duration_seconds ?? 0),
               })),
           } : undefined,
+          cardiacDrift: drift ? { create: { ...drift } } : undefined,
         },
       });
 

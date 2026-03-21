@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { AuthSessionProvider } from "@/components/session-provider";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -36,7 +37,9 @@ export default async function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
         />
-        <div className="relative min-h-screen">{children}</div>
+        <AuthSessionProvider>
+          <div className="relative min-h-screen">{children}</div>
+        </AuthSessionProvider>
       </body>
     </html>
   );

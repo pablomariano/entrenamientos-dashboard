@@ -20,30 +20,46 @@ export const LapSchema = z.object({
 });
 export type LapInput = z.infer<typeof LapSchema>;
 
+// Coerciones flexibles para datos del Polar RCX5 (pueden llegar como string, number o boolean)
+const flexBool = z
+  .union([z.boolean(), z.number(), z.string(), z.null(), z.undefined()])
+  .transform((v) => v != null && v !== "" && v !== "false" && v !== "0" && v !== 0);
+
+const toNum = (v: unknown) => (v == null || v === "" ? undefined : Number(v));
+const toInt = (v: unknown) => {
+  if (v == null || v === "") return undefined;
+  const n = Math.round(Number(v));
+  return Number.isNaN(n) ? undefined : n;
+};
+
+const flexNum = z.union([z.number(), z.string(), z.null(), z.undefined()]).optional().transform(toNum);
+const flexInt = z.union([z.number(), z.string(), z.null(), z.undefined()]).optional().transform(toInt);
+
 // --- Sesión individual dentro del JSON de importación ---
 
 export const ImportSessionSchema = z.object({
-  start_time: z.string().datetime({ offset: true }),
-  duration_seconds: z.number().int().positive(),
+  start_time: z.string(),
+  duration_seconds: z.union([z.number(), z.string()]).transform((v) => Math.round(Number(v))),
   duration_formatted: z.string().optional(),
-  hr_avg: z.number().int().min(30).max(250).nullable().optional(),
-  hr_max: z.number().int().min(30).max(250).nullable().optional(),
-  hr_min: z.number().int().min(30).max(250).nullable().optional(),
-  has_hr: z.boolean(),
-  has_laps: z.boolean(),
-  num_laps: z.number().int().nonnegative().optional(),
-  parseable: z.boolean(),
+  hr_avg: flexInt,
+  hr_max: flexInt,
+  hr_min: flexInt,
+  has_hr: flexBool,
+  has_laps: flexBool,
+  has_gps: flexBool.optional(),
+  num_laps: flexInt,
+  parseable: flexBool,
   hr_samples: z.array(z.object({
-    time_seconds: z.number(),
-    hr: z.number(),
+    time_seconds: z.union([z.number(), z.string()]).transform(Number),
+    hr: z.union([z.number(), z.string()]).transform(Number),
   })).optional(),
   laps: z.array(z.object({
-    lap_number: z.number().int(),
-    time_seconds: z.number().optional(),
-    duration_seconds: z.number().optional(),
-    approximate_time_seconds: z.number().optional(),
+    lap_number: z.union([z.number(), z.string()]).transform(Number),
+    time_seconds: flexNum,
+    duration_seconds: flexNum,
+    approximate_time_seconds: flexNum,
   })).optional(),
-});
+}).passthrough();
 export type ImportSessionInput = z.infer<typeof ImportSessionSchema>;
 
 // --- Payload completo de importación (entrenamientos.json) ---

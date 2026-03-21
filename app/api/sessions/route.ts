@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthenticatedUserId } from "@/lib/sessions/auth-helper";
-import type { Sport } from "@prisma/client";
+import type { Sport } from "@/generated/prisma";
 
 export async function GET(req: NextRequest) {
   const { userId, error } = await getAuthenticatedUserId();
