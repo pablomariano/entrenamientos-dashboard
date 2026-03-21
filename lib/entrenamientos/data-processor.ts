@@ -15,6 +15,8 @@ export interface TrainingSession {
   start_time: string;
   duration_seconds: number;
   duration_formatted: string;
+  title?: string;
+  sport?: string;
   hr_avg?: number | null;
   hr_max?: number | null;
   hr_min?: number | null;
@@ -26,6 +28,7 @@ export interface TrainingSession {
   hr_samples?: HRSample[];
   laps?: Lap[];
   distance?: number;
+  notes?: string;
 }
 
 export interface TrainingData {
