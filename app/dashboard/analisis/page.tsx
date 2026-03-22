@@ -1,3 +1,5 @@
-export default async function AnalisisPage() {
-  return <div className="flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6" />;
+import { AnalisisContent } from "./analisis-content";
+
+export default function AnalisisPage() {
+  return <AnalisisContent />;
 }
