@@ -6,6 +6,7 @@ import type { NextAuthConfig } from "next-auth";
  * No contiene ninguna importación de Node.js (sin Prisma, sin bcrypt).
  */
 export const authConfig = {
+  secret: process.env.AUTH_SECRET,
   pages: {
     signIn: "/login",
   },
