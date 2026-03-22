@@ -1,197 +1,184 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { readTrainingData, writeTrainingData } from "@/lib/entrenamientos/storage";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { ImportPayloadSchema } from "@/lib/schemas";
+import { computeFingerprint } from "@/lib/sessions/fingerprint";
+import { generateSessionTitle } from "@/lib/sessions/title";
+import { calculateTRIMP, calcUserHR } from "@/lib/sessions/trimp";
+import { calculateCardiacDrift } from "@/lib/sessions/cardiac-drift";
+import type { Sport } from "@/generated/prisma";
 
 export const dynamic = "force-dynamic";
 
-// Esquemas flexibles para aceptar variaciones en JSON (números como string, booleanos como 0/1)
-const num = z.union([z.number(), z.string()]).transform((v) => (typeof v === "string" ? Number(v) : v));
-const numOpt = z.union([z.number(), z.string(), z.null(), z.undefined()]).optional().transform((v) => (v == null || v === "" ? undefined : Number(v)));
-const bool = z
-  .union([z.boolean(), z.number(), z.string(), z.null(), z.undefined()])
-  .transform((v) => (v == null || v === "" || v === "false" || v === "0" ? false : true));
-
-const HRSampleSchema = z.object({
-  time_seconds: num,
-  hr: num,
-});
-
-const LapSchema = z.object({
-  lap_number: num,
-  time_seconds: numOpt,
-  duration_seconds: numOpt,
-  approximate_time_seconds: numOpt,
-});
-
-const TrainingSessionSchema = z.object({
-  id: z.string().optional(),
-  start_time: z.string(),
-  duration_seconds: num,
-  duration_formatted: z.string(),
-  hr_avg: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (v == null ? undefined : Number(v))),
-  hr_max: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (v == null ? undefined : Number(v))),
-  hr_min: z.union([z.number(), z.string(), z.null()]).optional().transform((v) => (v == null ? undefined : Number(v))),
-  has_hr: bool,
-  has_laps: bool,
-  has_gps: z.union([z.boolean(), z.number()]).optional().transform((v) => (v == null ? undefined : Boolean(v))),
-  num_laps: numOpt,
-  parseable: bool,
-  hr_samples: z.array(HRSampleSchema).optional(),
-  laps: z.array(LapSchema).optional(),
-  distance: numOpt,
-}).passthrough();
-
-const TrainingDataSchema = z.object({
-  sessions: z.array(TrainingSessionSchema),
-  total_sessions: num,
-  export_date: z.union([z.string(), z.number()]).transform((v) => String(v)),
-}).passthrough();
-
-/** Convierte valores a Float | null para Prisma (evita objetos o strings no numéricos). */
-function toFloatOrNull(v: unknown): number | null {
-  if (v == null) return null;
-  if (typeof v === "number" && !Number.isNaN(v)) return v;
-  if (typeof v === "string") {
-    const n = Number(v);
-    return Number.isNaN(n) ? null : n;
-  }
-  return null;
-}
-
-/** Convierte valores a Int | null para Prisma. */
-function toIntOrNull(v: unknown): number | null {
-  const f = toFloatOrNull(v);
-  return f == null ? null : Math.round(f);
+function formatDuration(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return [h, m, s].map((n) => n.toString().padStart(2, "0")).join(":");
 }
 
 export async function GET() {
-  try {
-    // Primero intentamos leer de la base de datos
-    const dbSessions = await prisma.session.findMany({
-      orderBy: { date: 'desc' }
-    });
+  const session = await auth();
+  const userId = session?.user?.id;
 
-    if (dbSessions.length > 0) {
-      // Si hay datos en la BD, los devolvemos en el formato que espera el frontend
-      const formatDuration = (sec: number) => {
-        const h = Math.floor(sec / 3600);
-        const m = Math.floor((sec % 3600) / 60);
-        const s = sec % 60;
-        return [h, m, s].map((n) => n.toString().padStart(2, "0")).join(":");
-      };
-      return NextResponse.json({
-        sessions: dbSessions.map((s: any) => {
-          const raw = (s.rawData as any) || {};
-          return {
-            ...raw,
+  try {
+    if (userId) {
+      const dbSessions = await prisma.trainingSession.findMany({
+        where: { userId },
+        orderBy: { date: "desc" },
+        include: {
+          hrSamples: { orderBy: { timeOffsetSeconds: "asc" } },
+          laps: { orderBy: { lapNumber: "asc" } },
+        },
+      });
+
+      if (dbSessions.length > 0) {
+        return NextResponse.json({
+          sessions: dbSessions.map((s) => ({
             id: s.id,
             start_time: s.date.toISOString(),
             duration_seconds: s.duration,
-            duration_formatted: raw.duration_formatted ?? formatDuration(s.duration),
+            duration_formatted: formatDuration(s.duration),
             sport: s.sport,
-            distance: s.distance,
-            hr_avg: s.avgHr,
-            hr_max: s.maxHr,
-            calories: s.calories,
-            trimp: s.trimp,
-            laps: s.laps,
-            has_hr: raw.has_hr ?? (s.avgHr != null),
-            has_laps: raw.has_laps ?? (s.laps != null && Array.isArray(s.laps) && s.laps.length > 0),
-            parseable: raw.parseable ?? true,
-            num_laps: raw.num_laps ?? (Array.isArray(s.laps) ? s.laps.length : undefined),
-          };
-        }),
-        total_sessions: dbSessions.length,
-        export_date: new Date().toISOString(),
-        source: 'database'
-      });
+            hr_avg: s.hrAvg ?? undefined,
+            hr_max: s.hrMax ?? undefined,
+            hr_min: s.hrMin ?? undefined,
+            has_hr: s.hrAvg != null,
+            has_laps: s.laps.length > 0,
+            has_gps: false,
+            num_laps: s.laps.length,
+            parseable: true,
+            trimp: s.trimp ?? undefined,
+            notes: s.notes ?? undefined,
+            title: s.title,
+            hr_samples: s.hrSamples.map((h) => ({
+              time_seconds: h.timeOffsetSeconds,
+              hr: h.hr,
+            })),
+            laps: s.laps.map((l) => ({
+              lap_number: l.lapNumber,
+              time_seconds: l.startOffsetSeconds,
+              duration_seconds: l.durationSeconds,
+            })),
+          })),
+          total_sessions: dbSessions.length,
+          export_date: new Date().toISOString(),
+        });
+      }
     }
 
-    // Fallback a archivos locales si no hay nada en la BD
-    const data = await readTrainingData();
-    if (!data) {
-      return NextResponse.json(
-        { error: "No hay datos de entrenamientos" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json(data);
+    return NextResponse.json({ error: "No hay datos de entrenamientos" }, { status: 404 });
   } catch (error) {
     console.error("Error reading training data:", error);
-    return NextResponse.json(
-      { error: "Error al leer los datos" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error al leer los datos" }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
-    const parsed = TrainingDataSchema.safeParse(body);
-    
+    const parsed = ImportPayloadSchema.safeParse(body);
     if (!parsed.success) {
-      const first = parsed.error.errors[0];
-      const hint = first ? ` (${first.path.join(".")}: ${first.message})` : "";
-      return NextResponse.json(
-        { error: `Datos inválidos${hint}`, details: parsed.error.flatten() },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Datos inválidos", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    // 1. Guardar en archivos locales (mantener compatibilidad por ahora)
-    await writeTrainingData(parsed.data);
+    const { sessions } = parsed.data;
 
-    // 2. Guardar cada sesión en la base de datos de Neon
-    const upsertPromises = parsed.data.sessions.map((session) => {
-      const sessionDate = new Date(session.start_time);
-      
-      return prisma.session.upsert({
-        where: {
-          id: session.id || `session-${sessionDate.getTime()}`, 
-        },
-        update: {
-          date: sessionDate,
-          duration: session.duration_seconds,
-          sport: (session as any).sport || "Unknown",
-          distance: toFloatOrNull((session as any).distance) ?? undefined,
-          avgHr: toIntOrNull(session.hr_avg) ?? undefined,
-          maxHr: toIntOrNull(session.hr_max) ?? undefined,
-          calories: toIntOrNull((session as any).calories) ?? undefined,
-          trimp: toFloatOrNull((session as any).trimp) ?? undefined,
-          laps: session.laps as any,
-          rawData: session as any,
-          updatedAt: new Date(),
-        },
-        create: {
-          id: session.id || `session-${sessionDate.getTime()}`,
-          date: sessionDate,
-          duration: session.duration_seconds,
-          sport: (session as any).sport || "Unknown",
-          distance: toFloatOrNull((session as any).distance) ?? undefined,
-          avgHr: toIntOrNull(session.hr_avg) ?? undefined,
-          maxHr: toIntOrNull(session.hr_max) ?? undefined,
-          calories: toIntOrNull((session as any).calories) ?? undefined,
-          trimp: toFloatOrNull((session as any).trimp) ?? undefined,
-          laps: session.laps as any,
-          rawData: session as any,
+    const deletedFingerprints = await prisma.deletedSessionFingerprint.findMany({
+      where: { userId },
+      select: { fingerprint: true },
+    });
+    const deletedSet = new Set(deletedFingerprints.map((d) => d.fingerprint));
+
+    const existingSessions = await prisma.trainingSession.findMany({
+      where: { userId },
+      select: { date: true, hrMin: true, hrMax: true },
+    });
+    const existingDates = new Set(existingSessions.map((s) => s.date.toISOString()));
+    const { hrRest, hrMax: userHrMax } = calcUserHR(existingSessions);
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const raw of sessions) {
+      if (!raw.parseable) { skipped++; continue; }
+
+      const date = new Date(raw.start_time);
+      const fingerprint = computeFingerprint(date, raw.duration_seconds);
+
+      if (deletedSet.has(fingerprint) || existingDates.has(date.toISOString())) {
+        skipped++;
+        continue;
+      }
+
+      const sport: Sport = detectSport(raw.hr_samples ?? [], raw.duration_seconds);
+      const hrAvg = raw.hr_avg ?? null;
+      const hrMax = raw.hr_max ?? null;
+      const hrMin = raw.hr_min ?? null;
+      const trimp = hrAvg && hrMax
+        ? calculateTRIMP(raw.duration_seconds, hrAvg, hrMax, hrRest, userHrMax)
+        : null;
+
+      const hrSamplesForDrift = (raw.hr_samples ?? [])
+        .filter((s) => s.hr >= 40 && s.hr <= 250)
+        .map((s) => ({ timeOffsetSeconds: Math.round(s.time_seconds), hr: s.hr }));
+      const drift = sport === "SPINNING"
+        ? calculateCardiacDrift(hrSamplesForDrift, raw.duration_seconds)
+        : null;
+
+      await prisma.trainingSession.create({
+        data: {
+          userId,
+          title: generateSessionTitle(date),
+          date,
+          duration: raw.duration_seconds,
+          sport,
+          hrAvg,
+          hrMax,
+          hrMin,
+          trimp,
+          hrSamples: raw.hr_samples ? {
+            create: raw.hr_samples
+              .filter((s) => s.hr >= 30 && s.hr <= 250)
+              .map((s) => ({ timeOffsetSeconds: Math.round(s.time_seconds), hr: s.hr })),
+          } : undefined,
+          laps: raw.laps ? {
+            create: raw.laps
+              .filter((l) => l.lap_number != null)
+              .map((l) => ({
+                lapNumber: l.lap_number,
+                startOffsetSeconds: Math.round(l.time_seconds ?? l.approximate_time_seconds ?? 0),
+                durationSeconds: Math.round(l.duration_seconds ?? 0),
+              })),
+          } : undefined,
+          cardiacDrift: drift ? { create: { ...drift } } : undefined,
         },
       });
-    });
 
-    await Promise.all(upsertPromises);
+      imported++;
+    }
 
-    return NextResponse.json({ 
-      success: true, 
-      count: parsed.data.sessions.length,
-      message: "Datos guardados en archivos y base de datos" 
-    });
+    return NextResponse.json({ success: true, imported, skipped, total: sessions.length });
   } catch (error) {
-    console.error("Error saving training data:", error);
-    return NextResponse.json(
-      { error: "Error al guardar los datos en la base de datos" },
-      { status: 500 }
-    );
+    console.error("Error importing training data:", error);
+    return NextResponse.json({ error: "Error al importar los datos" }, { status: 500 });
   }
+}
+
+function detectSport(
+  hrSamples: Array<{ time_seconds: number; hr: number }>,
+  durationSeconds: number
+): Sport {
+  const valid = hrSamples.filter((s) => s.hr >= 30 && s.hr <= 250);
+  if (valid.length < 20 || durationSeconds < 1200) return "MTB";
+  const hrs = valid.map((s) => s.hr);
+  const mean = hrs.reduce((a, b) => a + b, 0) / hrs.length;
+  const variance = hrs.reduce((acc, v) => acc + (v - mean) ** 2, 0) / hrs.length;
+  return Math.sqrt(variance) / mean < 0.08 ? "SPINNING" : "MTB";
 }
