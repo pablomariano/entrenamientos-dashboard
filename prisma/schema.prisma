@@ -2,8 +2,7 @@
 // SDD Fase 1 — Modelo de datos para entrenamientos ciclistas
 
 generator client {
-  provider        = "prisma-client-js"
-  output          = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {

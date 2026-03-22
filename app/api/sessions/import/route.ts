@@ -5,7 +5,7 @@ import { computeFingerprint } from "@/lib/sessions/fingerprint";
 import { generateSessionTitle } from "@/lib/sessions/title";
 import { calculateTRIMP, calcUserHR } from "@/lib/sessions/trimp";
 import { ImportPayloadSchema } from "@/lib/schemas";
-import type { Sport } from "@/generated/prisma";
+import type { Sport } from "@prisma/client";
 import { calculateCardiacDrift } from "@/lib/sessions/cardiac-drift";
 
 export async function POST(req: NextRequest) {

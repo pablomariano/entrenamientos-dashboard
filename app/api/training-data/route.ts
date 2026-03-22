@@ -6,7 +6,7 @@ import { computeFingerprint } from "@/lib/sessions/fingerprint";
 import { generateSessionTitle } from "@/lib/sessions/title";
 import { calculateTRIMP, calcUserHR } from "@/lib/sessions/trimp";
 import { calculateCardiacDrift } from "@/lib/sessions/cardiac-drift";
-import type { Sport } from "@/generated/prisma";
+import type { Sport } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
