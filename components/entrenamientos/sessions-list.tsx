@@ -580,14 +580,14 @@ export function SessionsList({ sessions }: SessionsListProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto rounded-b-xl">
+          <div className="overflow-x-auto">
             <DndContext
               collisionDetection={closestCenter}
               modifiers={[restrictToVerticalAxis]}
               onDragEnd={handleDragEnd}
               sensors={sensors}
             >
-              <Table>
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="w-10 px-2" />
