@@ -120,6 +120,8 @@ No incluyas texto fuera del JSON. No uses markdown dentro del JSON.`;
     return NextResponse.json({ error: "Respuesta de Gemini con formato inesperado", raw: jsonMatch[0] }, { status: 502 });
   }
 
+  await prisma.aIAnalysis.deleteMany({ where: { sessionId: id } });
+
   const analysis = await prisma.aIAnalysis.create({
     data: {
       sessionId: id,

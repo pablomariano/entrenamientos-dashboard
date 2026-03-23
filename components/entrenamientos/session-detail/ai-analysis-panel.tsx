@@ -53,7 +53,7 @@ export function AIAnalysisPanel({ sessionId, initialAnalyses = [] }: AIAnalysisP
         throw new Error(data.error || `Error ${res.status}`);
       }
       const analysis: AIAnalysis = await res.json();
-      setAnalyses((prev) => [...prev, analysis]);
+      setAnalyses([analysis]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al analizar la sesión");
     } finally {
