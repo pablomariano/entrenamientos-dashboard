@@ -22,8 +22,18 @@ interface AIAnalysisPanelProps {
 export function AIAnalysisPanel({ sessionId, initialAnalyses = [] }: AIAnalysisPanelProps) {
   const [analyses, setAnalyses] = React.useState<AIAnalysis[]>(initialAnalyses);
   const [loading, setLoading] = React.useState(false);
+  const [initialLoading, setInitialLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!sessionId) { setInitialLoading(false); return; }
+    fetch(`/api/sessions/${sessionId}/analyze`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: AIAnalysis[]) => setAnalyses(data))
+      .catch(() => {})
+      .finally(() => setInitialLoading(false));
+  }, [sessionId]);
 
   React.useEffect(() => {
     if (scrollRef.current) {
@@ -60,7 +70,11 @@ export function AIAnalysisPanel({ sessionId, initialAnalyses = [] }: AIAnalysisP
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1">
-        {analyses.length === 0 && !loading && !error ? (
+        {initialLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : analyses.length === 0 && !loading && !error ? (
           <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
             <div className="rounded-full bg-muted p-3">
               <Sparkles className="h-6 w-6 text-muted-foreground" />

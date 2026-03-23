@@ -9,6 +9,30 @@ import { es } from "date-fns/locale";
 
 type Params = { params: Promise<{ id: string }> };
 
+export async function GET(_req: NextRequest, { params }: Params) {
+  const { userId, error } = await getAuthenticatedUserId();
+  if (error) return error;
+
+  const { id } = await params;
+
+  const session = await prisma.trainingSession.findFirst({
+    where: { id, userId },
+    select: { id: true },
+  });
+
+  if (!session) {
+    return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
+  }
+
+  const analyses = await prisma.aIAnalysis.findMany({
+    where: { sessionId: id },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, summary: true, recommendations: true, createdAt: true },
+  });
+
+  return NextResponse.json(analyses);
+}
+
 export async function POST(_req: NextRequest, { params }: Params) {
   const { userId, error } = await getAuthenticatedUserId();
   if (error) return error;
