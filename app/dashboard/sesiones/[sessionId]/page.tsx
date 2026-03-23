@@ -62,20 +62,17 @@ export default function SessionDetailPage() {
       <div className="space-y-6 px-4 lg:px-6">
         <SessionHeader session={session} />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-1 flex flex-col gap-4">
-            <TRIMPCard
-              session={session}
-              globalHRRest={globalStats.minHR}
-              globalHRMax={globalStats.maxHR}
-            />
-            <CardiacDriftCard session={session} />
-          </div>
-          <div className="lg:col-span-2 flex flex-col gap-4">
-            <ExerciseMinutes session={session} />
-            <LapsTable session={session} />
-          </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <TRIMPCard
+            session={session}
+            globalHRRest={globalStats.minHR}
+            globalHRMax={globalStats.maxHR}
+          />
+          <CardiacDriftCard session={session} />
+          <ExerciseMinutes session={session} />
         </div>
+
+        <LapsTable session={session} />
 
         <HREvolutionChart
           session={session}
