@@ -70,17 +70,19 @@ export default function SessionDetailPage() {
               globalHRMax={globalStats.maxHR}
             />
             <CardiacDriftCard session={session} />
-            <AIAnalysisPanel sessionId={session.id} />
           </div>
           <div className="lg:col-span-2 flex flex-col gap-4">
             <ExerciseMinutes session={session} />
-            <HREvolutionChart
-              session={session}
-              onClose={() => router.push("/dashboard/sesiones")}
-            />
             <LapsTable session={session} />
           </div>
         </div>
+
+        <HREvolutionChart
+          session={session}
+          onClose={() => router.push("/dashboard/sesiones")}
+        />
+
+        <AIAnalysisPanel sessionId={session.id} />
       </div>
     </div>
   );
