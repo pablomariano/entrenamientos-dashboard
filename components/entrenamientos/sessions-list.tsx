@@ -36,8 +36,19 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -53,12 +64,18 @@ import {
   GripVertical,
   Columns3,
   Plus,
-  ChevronRight,
   ChevronLeft,
+  ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   Heart,
   Clock,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,8 +83,11 @@ interface SessionsListProps {
   sessions: TrainingSession[];
 }
 
-const COLUMN_IDS = ["header", "type", "target", "limit", "reviewer"] as const;
+const COLUMN_IDS = ["header", "target", "limit", "hr_max", "hr_min", "reviewer"] as const;
 type ColumnId = (typeof COLUMN_IDS)[number];
+
+type SortKey = "duration" | "hr_avg" | "hr_max" | "hr_min" | null;
+type SortDir = "asc" | "desc";
 
 type FilterType = "all" | "withHR" | "withLaps";
 
@@ -95,13 +115,51 @@ function DragHandle({
   );
 }
 
+function SortableHeader({
+  label,
+  sortKey: key,
+  currentSortKey,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  sortKey: NonNullable<SortKey>;
+  currentSortKey: SortKey;
+  sortDir: SortDir;
+  onSort: (key: NonNullable<SortKey>) => void;
+}) {
+  const isActive = currentSortKey === key;
+  return (
+    <button
+      className="inline-flex items-center gap-1 text-xs font-medium hover:text-foreground transition-colors"
+      onClick={() => onSort(key)}
+    >
+      {label}
+      {isActive ? (
+        sortDir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+      ) : (
+        <ArrowUpDown className="size-3 opacity-40" />
+      )}
+    </button>
+  );
+}
+
 function SortableSessionRow({
   session,
   columnVisibility,
+  onRename,
+  onDelete,
 }: {
   session: TrainingSession;
   columnVisibility: Record<string, boolean>;
+  onRename: (id: string, title: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState(session.title ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+
   const date = new Date(session.start_time);
   const hasHRChart = session.has_hr && session.hr_samples && session.hr_samples.length > 0;
   const sessionUrl = `/dashboard/sesiones/${encodeSessionId(session.start_time)}`;
@@ -122,6 +180,29 @@ function SortableSessionRow({
     minute: "2-digit",
     timeZone: "UTC",
   });
+
+  async function handleRenameSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!session.id || !editTitle.trim()) return;
+    setIsSaving(true);
+    try {
+      await onRename(session.id, editTitle.trim());
+      setEditOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!session.id) return;
+    setIsSaving(true);
+    try {
+      await onDelete(session.id);
+      setDeleteOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <TableRow
@@ -149,16 +230,11 @@ function SortableSessionRow({
             )}
             title={hasHRChart ? "Ver detalle de sesión" : "Sin datos de FC"}
           >
-            {dateLabel}
+            {session.title ?? dateLabel}
           </Link>
-          <div className="text-xs text-muted-foreground">{timeLabel}</div>
-        </TableCell>
-      )}
-      {columnVisibility.type !== false && (
-        <TableCell>
-          <Badge variant="outline" className="text-muted-foreground">
-            {!session.parseable ? "Datos básicos" : "Completo"}
-          </Badge>
+          <div className="text-xs text-muted-foreground">
+            {session.title ? `${dateLabel} · ${timeLabel}` : timeLabel}
+          </div>
         </TableCell>
       )}
       {columnVisibility.target !== false && (
@@ -181,6 +257,30 @@ function SortableSessionRow({
           )}
         </TableCell>
       )}
+      {columnVisibility.hr_max !== false && (
+        <TableCell className="text-right">
+          {session.has_hr && session.hr_max ? (
+            <span className="inline-flex items-center gap-1 text-sm">
+              <Heart className="size-3.5 text-red-500" />
+              {session.hr_max} bpm
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
+      {columnVisibility.hr_min !== false && (
+        <TableCell className="text-right">
+          {session.has_hr && session.hr_min ? (
+            <span className="inline-flex items-center gap-1 text-sm">
+              <Heart className="size-3.5 text-blue-400" />
+              {session.hr_min} bpm
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </TableCell>
+      )}
       {columnVisibility.reviewer !== false && (
         <TableCell>
           {session.has_laps && session.num_laps ? (
@@ -191,16 +291,84 @@ function SortableSessionRow({
         </TableCell>
       )}
       <TableCell className="w-12 px-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 opacity-0 group-hover:opacity-100"
-          asChild
-        >
-          <Link href={sessionUrl} title="Ver detalle de sesión">
-            <ChevronRight className="size-4" />
-          </Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+            >
+              <MoreVertical className="size-4" />
+              <span className="sr-only">Acciones</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={() => { setEditTitle(session.title ?? ""); setEditOpen(true); }}>
+              <Pencil className="size-4 mr-2" />
+              Editar nombre
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="size-4 mr-2" />
+              Eliminar sesión
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar nombre de sesión</DialogTitle>
+              <DialogDescription>{dateLabel} · {timeLabel}</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleRenameSubmit}>
+              <div className="py-4">
+                <Label htmlFor={`edit-title-${session.start_time}`}>Nombre</Label>
+                <Input
+                  id={`edit-title-${session.start_time}`}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Nombre de la sesión..."
+                  className="mt-2"
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={isSaving}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSaving || !editTitle.trim()}>
+                  {isSaving ? "Guardando..." : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Eliminar sesión</DialogTitle>
+              <DialogDescription>
+                ¿Estás seguro? Esta acción no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground py-1">
+              {session.title ? `${session.title} · ` : ""}{dateLabel} · {timeLabel}
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isSaving}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isSaving}>
+                {isSaving ? "Eliminando..." : "Eliminar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TableCell>
     </TableRow>
   );
@@ -226,11 +394,14 @@ export function SessionsList({ sessions }: SessionsListProps) {
   );
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     header: true,
-    type: true,
     target: true,
     limit: true,
+    hr_max: true,
+    hr_min: true,
     reviewer: true,
   });
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(0);
@@ -249,9 +420,24 @@ export function SessionsList({ sessions }: SessionsListProps) {
     return true;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
+  const sortedFilteredSessions = sortKey
+    ? [...filteredSessions].sort((a, b) => {
+        let aVal: number | null | undefined;
+        let bVal: number | null | undefined;
+        if (sortKey === "duration") { aVal = a.duration_seconds; bVal = b.duration_seconds; }
+        else if (sortKey === "hr_avg") { aVal = a.hr_avg; bVal = b.hr_avg; }
+        else if (sortKey === "hr_max") { aVal = a.hr_max; bVal = b.hr_max; }
+        else if (sortKey === "hr_min") { aVal = a.hr_min; bVal = b.hr_min; }
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+      })
+    : filteredSessions;
+
+  const totalPages = Math.max(1, Math.ceil(sortedFilteredSessions.length / pageSize));
   const safePageIndex = Math.min(pageIndex, totalPages - 1);
-  const paginatedSessions = filteredSessions.slice(
+  const paginatedSessions = sortedFilteredSessions.slice(
     safePageIndex * pageSize,
     (safePageIndex + 1) * pageSize
   );
@@ -267,6 +453,34 @@ export function SessionsList({ sessions }: SessionsListProps) {
         setOrderedSessions((prev) => arrayMove(prev, oldIdx, newIdx));
       }
     }
+  }
+
+  function handleSort(key: NonNullable<SortKey>) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+    setPageIndex(0);
+  }
+
+  async function handleRename(id: string, title: string) {
+    const res = await fetch(`/api/sessions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    if (!res.ok) throw new Error("Error al actualizar la sesión");
+    setOrderedSessions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, title } : s))
+    );
+  }
+
+  async function handleDelete(id: string) {
+    const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Error al eliminar la sesión");
+    setOrderedSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
   const withHR = orderedSessions.filter((s) => s.has_hr && s.hr_samples && s.hr_samples.length > 0).length;
@@ -330,9 +544,10 @@ export function SessionsList({ sessions }: SessionsListProps) {
                   }
                 >
                   {colId === "header" && "Sesión"}
-                  {colId === "type" && "Tipo"}
                   {colId === "target" && "Duración"}
-                  {colId === "limit" && "FC (bpm)"}
+                  {colId === "limit" && "FC media"}
+                  {colId === "hr_max" && "FC máxima"}
+                  {colId === "hr_min" && "FC mínima"}
                   {colId === "reviewer" && "Vueltas"}
                 </DropdownMenuCheckboxItem>
               ))}
@@ -379,14 +594,25 @@ export function SessionsList({ sessions }: SessionsListProps) {
                     {columnVisibility.header !== false && (
                       <TableHead>Tipo de sesión</TableHead>
                     )}
-                    {columnVisibility.type !== false && (
-                      <TableHead>Tipo</TableHead>
-                    )}
                     {columnVisibility.target !== false && (
-                      <TableHead className="text-right">Duración</TableHead>
+                      <TableHead className="text-right">
+                        <SortableHeader label="Duración" sortKey="duration" currentSortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                      </TableHead>
                     )}
                     {columnVisibility.limit !== false && (
-                      <TableHead className="text-right">FC (bpm)</TableHead>
+                      <TableHead className="text-right">
+                        <SortableHeader label="FC media" sortKey="hr_avg" currentSortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                      </TableHead>
+                    )}
+                    {columnVisibility.hr_max !== false && (
+                      <TableHead className="text-right">
+                        <SortableHeader label="FC máx." sortKey="hr_max" currentSortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                      </TableHead>
+                    )}
+                    {columnVisibility.hr_min !== false && (
+                      <TableHead className="text-right">
+                        <SortableHeader label="FC mín." sortKey="hr_min" currentSortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                      </TableHead>
                     )}
                     {columnVisibility.reviewer !== false && (
                       <TableHead>Vueltas</TableHead>
@@ -401,6 +627,8 @@ export function SessionsList({ sessions }: SessionsListProps) {
                         key={session.start_time}
                         session={session}
                         columnVisibility={columnVisibility}
+                        onRename={handleRename}
+                        onDelete={handleDelete}
                       />
                     ))}
                   </SortableContext>

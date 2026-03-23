@@ -68,12 +68,19 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta:
 
 No incluyas texto fuera del JSON. No uses markdown dentro del JSON.`;
 
+  console.log("\n" + "=".repeat(60));
+  console.log("PROMPT ENVIADO A GEMINI");
+  console.log("=".repeat(60));
+  console.log(prompt);
+  console.log("=".repeat(60) + "\n");
+
   let rawResponse: string;
   try {
     rawResponse = await generateText(prompt);
   } catch (err) {
-    console.error("Gemini error:", err);
-    return NextResponse.json({ error: "Error al conectar con Gemini. Verifica GEMINI_API_KEY." }, { status: 503 });
+    console.error("AI provider error:", err);
+    const errMsg = err instanceof Error ? err.message : "Error desconocido";
+    return NextResponse.json({ error: `Error al conectar con el proveedor de IA: ${errMsg}` }, { status: 503 });
   }
 
   // Extraer JSON de la respuesta (puede venir con backticks o texto extra)

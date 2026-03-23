@@ -48,7 +48,10 @@ export const ImportSessionSchema = z.object({
   has_laps: flexBool,
   has_gps: flexBool.optional(),
   num_laps: flexInt,
-  parseable: flexBool,
+  parseable: z
+    .union([z.boolean(), z.number(), z.string(), z.null(), z.undefined()])
+    .optional()
+    .transform((v) => v == null ? true : v !== "" && v !== "false" && v !== "0" && v !== 0 && !!v),
   hr_samples: z.array(z.object({
     time_seconds: z.union([z.number(), z.string()]).transform(Number),
     hr: z.union([z.number(), z.string()]).transform(Number),

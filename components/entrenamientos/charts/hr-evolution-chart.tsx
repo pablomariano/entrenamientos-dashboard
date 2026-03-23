@@ -105,12 +105,16 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
 
   const chartData = validSamples.map((s) => ({ time: s.time_seconds / 60, hr: s.hr }));
   const hrValues = validSamples.map((s) => s.hr);
-  const minHR = hrValues.length > 0 ? Math.min(...hrValues) : 60;
-  const maxHR = hrValues.length > 0 ? Math.max(...hrValues) : 180;
-  const avgHR = hrValues.length > 0 ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length : 0;
+  const sampleMinHR = hrValues.length > 0 ? Math.min(...hrValues) : 60;
+  const sampleMaxHR = hrValues.length > 0 ? Math.max(...hrValues) : 180;
+  const sampleAvgHR = hrValues.length > 0 ? hrValues.reduce((a, b) => a + b, 0) / hrValues.length : 0;
 
-  const yMin = Math.max(30, Math.floor((minHR - 10) / 10) * 10);
-  const yMax = Math.ceil((maxHR + 10) / 10) * 10;
+  const minHR = session.hr_min ?? sampleMinHR;
+  const maxHR = session.hr_max ?? sampleMaxHR;
+  const avgHR = session.hr_avg ?? Math.round(sampleAvgHR);
+
+  const yMin = Math.max(30, Math.floor((sampleMinHR - 10) / 10) * 10);
+  const yMax = Math.ceil((sampleMaxHR + 10) / 10) * 10;
   const maxTimeMins = chartData.length > 0 ? Math.max(...chartData.map((d) => d.time)) : 0;
   const xMax = Math.ceil(maxTimeMins / 5) * 5;
 
@@ -143,7 +147,7 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
             <div className="flex flex-wrap gap-4 pt-1 text-sm">
               <div>
                 <span className="text-muted-foreground">Prom </span>
-                <span className="font-medium tabular-nums" style={{ color: avgColor }}>{Math.round(avgHR)}</span>
+                <span className="font-medium tabular-nums" style={{ color: avgColor }}>{avgHR}</span>
                 <span className="text-muted-foreground"> bpm</span>
               </div>
               <div>
@@ -233,7 +237,7 @@ export function HREvolutionChart({ session, onClose }: HREvolutionChartProps) {
                 stroke="var(--chart-3)"
                 strokeDasharray="5 5"
                 strokeWidth={1.5}
-                label={{ value: `Prom ${Math.round(avgHR)} bpm`, position: "insideTopRight", fontSize: 11, fill: "var(--chart-3)" }}
+                label={{ value: `Prom ${avgHR} bpm`, position: "insideTopRight", fontSize: 11, fill: "var(--chart-3)" }}
               />
               {lapSeparators.map((lap, i) => {
                 const xVal = lap.time_seconds / 60;

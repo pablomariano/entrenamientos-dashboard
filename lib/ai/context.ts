@@ -12,7 +12,7 @@ export async function buildTrainingContext(userId: string): Promise<string> {
     prisma.trainingSession.findMany({
       where: { userId },
       orderBy: { date: "desc" },
-      take: 20,
+      take: 10,
       select: {
         date: true,
         title: true,
@@ -65,15 +65,15 @@ export async function buildTrainingContext(userId: string): Promise<string> {
     "",
     `HR calculada del usuario: FC Máxima histórica = ${hrMax} bpm | FC Reposo estimada = ${hrRest} bpm`,
     "",
-    "--- Últimas sesiones (máx. 20) ---",
+    "--- Últimas 10 sesiones ---",
   ];
 
   for (const s of recentSessions) {
-    const dateStr = format(s.date, "EEEE d MMM yyyy", { locale: es });
-    const dur = `${Math.round(s.duration / 60)} min`;
-    const hr = s.hrAvg ? `FC Prom ${s.hrAvg} bpm | FC Max ${s.hrMax} bpm` : "sin FC";
-    const trimp = s.trimp ? `TRIMP ${s.trimp.toFixed(1)}` : "";
-    lines.push(`• ${dateStr} | ${s.sport} | ${dur} | ${hr} | ${trimp}`);
+    const dateStr = format(s.date, "d/M/yy", { locale: es });
+    const dur = Math.round(s.duration / 60);
+    const hr = s.hrAvg ? `FC${s.hrAvg}` : "";
+    const trimp = s.trimp ? `T${s.trimp.toFixed(0)}` : "";
+    lines.push(`• ${dateStr} ${s.sport} ${dur}m ${hr} ${trimp}`.trim());
   }
 
   lines.push("", "--- TRIMP por semana (últimas 4 semanas) ---");

@@ -52,7 +52,7 @@ export function TRIMPCard({ session, globalHRRest = 60, globalHRMax = 190 }: TRI
   }
 
   const hrMax = Math.max(session.hr_max ?? globalHRMax, globalHRMax);
-  const trimp = calculateSessionTRIMP(session.duration_seconds, session.hr_avg, globalHRRest, hrMax);
+  const trimp = calculateSessionTRIMP(session.duration_seconds, session.hr_avg!, globalHRRest, hrMax);
   const level = getTRIMPLevel(trimp);
 
   return (
@@ -77,14 +77,14 @@ export function TRIMPCard({ session, globalHRRest = 60, globalHRMax = 190 }: TRI
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Intensidad relativa</span>
             <span className="font-medium tabular-nums">
-              {Math.round(((session.hr_avg - globalHRRest) / (hrMax - globalHRRest)) * 100)}%
+              {Math.round(((session.hr_avg! - globalHRRest) / (hrMax - globalHRRest)) * 100)}%
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-chart-3 via-chart-4 to-chart-1 transition-all"
               style={{
-                width: `${Math.min(100, Math.round(((session.hr_avg - globalHRRest) / (hrMax - globalHRRest)) * 100))}%`,
+                width: `${Math.min(100, Math.round(((session.hr_avg! - globalHRRest) / (hrMax - globalHRRest)) * 100))}%`,
               }}
             />
           </div>
@@ -100,7 +100,7 @@ export function TRIMPCard({ session, globalHRRest = 60, globalHRMax = 190 }: TRI
             <div className="text-[10px] text-muted-foreground">FC Prom</div>
           </div>
           <div className="rounded-md border p-2 text-center">
-            <div className="text-lg font-semibold tabular-nums text-destructive">{session.hr_max}</div>
+            <div className="text-lg font-semibold tabular-nums text-destructive">{session.hr_max ?? "—"}</div>
             <div className="text-[10px] text-muted-foreground">FC Máx</div>
           </div>
           <div className="rounded-md border p-2 text-center">
