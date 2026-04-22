@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { getAuthenticatedUserId } from "@/lib/sessions/auth-helper";
 import { buildTrainingContext } from "@/lib/ai/context";
 import { generateText } from "@/lib/ai/gemini";
-import { GeminiSessionAnalysisSchema } from "@/lib/schemas";
+import { AISessionAnalysisSchema } from "@/lib/schemas";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -93,7 +93,7 @@ Responde ÚNICAMENTE con un objeto JSON válido con esta estructura exacta:
 No incluyas texto fuera del JSON. No uses markdown dentro del JSON.`;
 
   console.log("\n" + "=".repeat(60));
-  console.log("PROMPT ENVIADO A GEMINI");
+  console.log("PROMPT ENVIADO A LA IA");
   console.log("=".repeat(60));
   console.log(prompt);
   console.log("=".repeat(60) + "\n");
@@ -110,14 +110,14 @@ No incluyas texto fuera del JSON. No uses markdown dentro del JSON.`;
   // Extraer JSON de la respuesta (puede venir con backticks o texto extra)
   const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return NextResponse.json({ error: "Respuesta de Gemini no válida", raw: rawResponse }, { status: 502 });
+    return NextResponse.json({ error: "Respuesta de IA no válida", raw: rawResponse }, { status: 502 });
   }
 
   let parsed: { summary: string; recommendations?: string };
   try {
-    parsed = GeminiSessionAnalysisSchema.parse(JSON.parse(jsonMatch[0]));
+    parsed = AISessionAnalysisSchema.parse(JSON.parse(jsonMatch[0]));
   } catch {
-    return NextResponse.json({ error: "Respuesta de Gemini con formato inesperado", raw: jsonMatch[0] }, { status: 502 });
+    return NextResponse.json({ error: "Respuesta de IA con formato inesperado", raw: jsonMatch[0] }, { status: 502 });
   }
 
   await prisma.aIAnalysis.deleteMany({ where: { sessionId: id } });

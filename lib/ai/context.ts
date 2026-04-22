@@ -5,7 +5,7 @@ import { es } from "date-fns/locale";
 
 /**
  * Construye un resumen estructurado del historial de entrenamiento del usuario
- * para inyectar como contexto en los prompts de Gemini.
+ * para inyectar como contexto en los prompts de IA.
  */
 export async function buildTrainingContext(userId: string): Promise<string> {
   const [recentSessions, allHR, driftRecords, upcomingScheduled] = await Promise.all([

@@ -11,10 +11,10 @@ export const AIAnalysisResponseSchema = z.object({
 });
 export type AIAnalysisResponse = z.infer<typeof AIAnalysisResponseSchema>;
 
-// --- Schema para validar la respuesta cruda de Gemini ---
+// --- Schema para validar la respuesta cruda de la IA ---
 
-export const GeminiSessionAnalysisSchema = z.object({
+export const AISessionAnalysisSchema = z.object({
   summary: z.string().min(1),
   recommendations: z.string().optional(),
 });
-export type GeminiSessionAnalysis = z.infer<typeof GeminiSessionAnalysisSchema>;
+export type AISessionAnalysis = z.infer<typeof AISessionAnalysisSchema>;

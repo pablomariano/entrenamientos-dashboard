@@ -55,19 +55,19 @@ Reglas:
   try {
     rawResponse = await generateText(prompt);
   } catch (err) {
-    console.error("Gemini error:", err);
-    return NextResponse.json({ error: "Error al conectar con Gemini. Verifica GEMINI_API_KEY." }, { status: 503 });
+    console.error("AI error:", err);
+    return NextResponse.json({ error: "Error al conectar con la IA. Verifica DEEPSEEK_API_KEY." }, { status: 503 });
   }
 
   const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    return NextResponse.json({ error: "Respuesta de Gemini no válida", raw: rawResponse }, { status: 502 });
+    return NextResponse.json({ error: "Respuesta de IA no válida", raw: rawResponse }, { status: 502 });
   }
 
   try {
     const result = JSON.parse(jsonMatch[0]);
     return NextResponse.json(result);
   } catch {
-    return NextResponse.json({ error: "Respuesta de Gemini con formato inesperado", raw: jsonMatch[0] }, { status: 502 });
+    return NextResponse.json({ error: "Respuesta de IA con formato inesperado", raw: jsonMatch[0] }, { status: 502 });
   }
 }
