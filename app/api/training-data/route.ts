@@ -98,9 +98,11 @@ export async function POST(request: NextRequest) {
 
     const existingSessions = await prisma.trainingSession.findMany({
       where: { userId },
-      select: { date: true, hrMin: true, hrMax: true },
+      select: { date: true, duration: true, hrMin: true, hrMax: true },
     });
-    const existingDates = new Set(existingSessions.map((s) => s.date.toISOString()));
+    const existingFingerprints = new Set(
+      existingSessions.map((s) => computeFingerprint(s.date, s.duration))
+    );
     const { hrRest, hrMax: userHrMax } = calcUserHR(existingSessions);
 
     let imported = 0;
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
       const date = new Date(raw.start_time);
       const fingerprint = computeFingerprint(date, raw.duration_seconds);
 
-      if (deletedSet.has(fingerprint) || existingDates.has(date.toISOString())) {
+      if (deletedSet.has(fingerprint) || existingFingerprints.has(fingerprint)) {
         skipped++;
         continue;
       }

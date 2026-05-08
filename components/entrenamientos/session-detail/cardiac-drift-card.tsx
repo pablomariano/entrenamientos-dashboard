@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrainingSession, HRSample } from "@/lib/entrenamientos/data-processor";
-import { HeartPulse, ArrowRight } from "lucide-react";
+import { HeartPulse } from "lucide-react";
 
 interface CardiacDriftCardProps {
   session: TrainingSession;
@@ -26,7 +26,6 @@ function calculateDriftFromSamples(
 
   if (valid.length < 30) return null;
 
-  // Estado estable: 20%–80% de la sesión
   const ssStart = totalDurationSeconds * 0.2;
   const ssEnd = totalDurationSeconds * 0.8;
   const steadyStateDurationSeconds = Math.round(ssEnd - ssStart);
@@ -62,33 +61,38 @@ function getDriftInterpretation(drift: number): {
   label: string;
   variant: "default" | "secondary" | "destructive" | "outline";
   description: string;
+  barWidth: number;
 } {
   const absDrift = Math.abs(drift);
   if (absDrift < 3) {
     return {
       label: "Estable",
       variant: "secondary",
-      description: "Excelente estabilidad cardiovascular. Tu corazón mantiene un ritmo constante.",
+      description: "Excelente estabilidad cardiovascular.",
+      barWidth: 15,
     };
   }
   if (absDrift < 5) {
     return {
       label: "Leve",
       variant: "outline",
-      description: "Deriva normal. Indica buena capacidad aeróbica.",
+      description: "Deriva normal, buena capacidad aeróbica.",
+      barWidth: 40,
     };
   }
   if (absDrift < 10) {
     return {
       label: "Moderada",
       variant: "default",
-      description: "Tu FC sube progresivamente. Puede indicar fatiga, deshidratación o calor.",
+      description: "FC sube progresivamente. Puede indicar fatiga o calor.",
+      barWidth: 70,
     };
   }
   return {
     label: "Significativa",
     variant: "destructive",
-    description: "Deriva alta. Revisa hidratación, temperatura, descanso previo o posible sobreentrenamiento.",
+    description: "Deriva alta. Revisa hidratación y descanso previo.",
+    barWidth: 100,
   };
 }
 
@@ -100,50 +104,57 @@ export function CardiacDriftCard({ session }: CardiacDriftCardProps) {
   }
 
   const drift = calculateDriftFromSamples(samples, session.duration_seconds);
-
   if (!drift) return null;
 
   const interpretation = getDriftInterpretation(drift.driftPercent);
-  const steadyMins = Math.round(drift.steadyStateDurationSeconds / 60);
   const isPositive = drift.driftPercent > 0;
+
+  // Color de la barra según severidad
+  const barColorMap: Record<string, string> = {
+    Estable: "bg-chart-3",
+    Leve: "bg-chart-2",
+    Moderada: "bg-chart-4",
+    Significativa: "bg-destructive",
+  };
+  const barColor = barColorMap[interpretation.label] ?? "bg-chart-2";
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <HeartPulse className="h-4 w-4 text-primary" />
           Deriva Cardíaca
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Número + badge */}
         <div className="flex items-end gap-3">
           <span className="text-4xl font-bold tracking-tight tabular-nums">
             {isPositive ? "+" : ""}
             {drift.driftPercent}%
           </span>
-          <Badge variant={interpretation.variant} className="mb-1">
-            {interpretation.label}
-          </Badge>
+          <div className="pb-1">
+            <Badge variant={interpretation.variant}>{interpretation.label}</Badge>
+          </div>
         </div>
 
+        {/* Descripción */}
         <p className="text-xs text-muted-foreground">{interpretation.description}</p>
 
-        <div className="flex items-center justify-center gap-3 rounded-lg border bg-muted/30 p-3">
-          <div className="text-center">
-            <div className="text-2xl font-semibold tabular-nums">{drift.hrStart}</div>
-            <div className="text-[10px] text-muted-foreground">FC 1ª mitad</div>
+        {/* Barra de severidad */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">Severidad</span>
+            <span className="font-medium tabular-nums text-muted-foreground">
+              {drift.hrStart} → {drift.hrEnd} bpm
+            </span>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground" />
-          <div className="text-center">
-            <div className={`text-2xl font-semibold tabular-nums ${isPositive ? "text-destructive" : "text-chart-3"}`}>
-              {drift.hrEnd}
-            </div>
-            <div className="text-[10px] text-muted-foreground">FC 2ª mitad</div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full ${barColor} transition-all duration-700`}
+              style={{ width: `${interpretation.barWidth}%` }}
+            />
           </div>
-        </div>
-
-        <div className="text-xs text-muted-foreground text-center">
-          Análisis sobre {steadyMins} min de estado estable (20%–80% de la sesión)
         </div>
       </CardContent>
     </Card>

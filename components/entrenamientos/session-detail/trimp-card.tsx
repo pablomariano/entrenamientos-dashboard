@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { TrainingSession } from "@/lib/entrenamientos/data-processor";
 import { BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
@@ -24,14 +25,42 @@ function calculateSessionTRIMP(
 
 function getTRIMPLevel(trimp: number): {
   label: string;
-  color: string;
+  badgeVariant: "secondary" | "outline" | "default" | "destructive";
   description: string;
   Icon: typeof TrendingUp;
+  barColor: string;
 } {
-  if (trimp < 50) return { label: "Ligero", color: "text-chart-3", description: "Recuperación activa o sesión corta", Icon: Minus };
-  if (trimp < 100) return { label: "Moderado", color: "text-chart-2", description: "Entrenamiento aeróbico efectivo", Icon: TrendingUp };
-  if (trimp < 200) return { label: "Alto", color: "text-chart-4", description: "Sesión exigente, buena para progresar", Icon: TrendingUp };
-  return { label: "Muy alto", color: "text-chart-1", description: "Sesión muy intensa, necesitarás recuperación", Icon: TrendingDown };
+  if (trimp < 50)
+    return {
+      label: "Ligero",
+      badgeVariant: "secondary",
+      description: "Recuperación activa o sesión corta",
+      Icon: Minus,
+      barColor: "from-chart-3 to-chart-3",
+    };
+  if (trimp < 100)
+    return {
+      label: "Moderado",
+      badgeVariant: "outline",
+      description: "Entrenamiento aeróbico efectivo",
+      Icon: TrendingUp,
+      barColor: "from-chart-3 to-chart-2",
+    };
+  if (trimp < 200)
+    return {
+      label: "Alto",
+      badgeVariant: "default",
+      description: "Sesión exigente, buena para progresar",
+      Icon: TrendingUp,
+      barColor: "from-chart-2 via-chart-4 to-chart-4",
+    };
+  return {
+    label: "Muy alto",
+    badgeVariant: "destructive",
+    description: "Sesión muy intensa, necesitarás recuperación",
+    Icon: TrendingDown,
+    barColor: "from-chart-4 via-chart-1 to-chart-1",
+  };
 }
 
 export function TRIMPCard({ session, globalHRRest = 60, globalHRMax = 190 }: TRIMPCardProps) {
@@ -45,7 +74,7 @@ export function TRIMPCard({ session, globalHRRest = 60, globalHRMax = 190 }: TRI
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Sin datos de frecuencia cardíaca para calcular TRIMP.</p>
+          <p className="text-sm text-muted-foreground">Sin datos de FC para calcular TRIMP.</p>
         </CardContent>
       </Card>
     );
@@ -54,58 +83,45 @@ export function TRIMPCard({ session, globalHRRest = 60, globalHRMax = 190 }: TRI
   const hrMax = Math.max(session.hr_max ?? globalHRMax, globalHRMax);
   const trimp = calculateSessionTRIMP(session.duration_seconds, session.hr_avg!, globalHRRest, hrMax);
   const level = getTRIMPLevel(trimp);
+  const intensity = Math.min(
+    100,
+    Math.round(((session.hr_avg! - globalHRRest) / (hrMax - globalHRRest)) * 100)
+  );
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <BarChart3 className="h-4 w-4 text-primary" />
-          TRIMP (Carga de Entrenamiento)
+          Carga de Entrenamiento
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* Número + badge */}
         <div className="flex items-end gap-3">
-          <span className="text-4xl font-bold tracking-tight tabular-nums">{Math.round(trimp)}</span>
+          <span className="text-4xl font-bold tracking-tight tabular-nums">
+            {Math.round(trimp)}
+          </span>
           <div className="flex items-center gap-1.5 pb-1">
-            <level.Icon className={`h-4 w-4 ${level.color}`} />
-            <span className={`text-sm font-medium ${level.color}`}>{level.label}</span>
+            <level.Icon className="h-3.5 w-3.5 text-muted-foreground" />
+            <Badge variant={level.badgeVariant}>{level.label}</Badge>
           </div>
         </div>
+
+        {/* Descripción */}
         <p className="text-xs text-muted-foreground">{level.description}</p>
 
-        <div className="space-y-1.5">
+        {/* Barra de intensidad */}
+        <div className="space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Intensidad relativa</span>
-            <span className="font-medium tabular-nums">
-              {Math.round(((session.hr_avg! - globalHRRest) / (hrMax - globalHRRest)) * 100)}%
-            </span>
+            <span className="font-medium tabular-nums">{intensity}%</span>
           </div>
-          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-chart-3 via-chart-4 to-chart-1 transition-all"
-              style={{
-                width: `${Math.min(100, Math.round(((session.hr_avg! - globalHRRest) / (hrMax - globalHRRest)) * 100))}%`,
-              }}
+              className={`h-full rounded-full bg-gradient-to-r ${level.barColor} transition-all duration-700`}
+              style={{ width: `${intensity}%` }}
             />
-          </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground/60">
-            <span>Reposo ({globalHRRest} bpm)</span>
-            <span>FC Máx ({hrMax} bpm)</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 pt-1">
-          <div className="rounded-md border p-2 text-center">
-            <div className="text-lg font-semibold tabular-nums">{session.hr_avg}</div>
-            <div className="text-[10px] text-muted-foreground">FC Prom</div>
-          </div>
-          <div className="rounded-md border p-2 text-center">
-            <div className="text-lg font-semibold tabular-nums text-destructive">{session.hr_max ?? "—"}</div>
-            <div className="text-[10px] text-muted-foreground">FC Máx</div>
-          </div>
-          <div className="rounded-md border p-2 text-center">
-            <div className="text-lg font-semibold tabular-nums">{session.hr_min ?? "—"}</div>
-            <div className="text-[10px] text-muted-foreground">FC Mín</div>
           </div>
         </div>
       </CardContent>

@@ -43,3 +43,7 @@ pnpm-lock.yaml
 /scripts/data/*
 
 /generated/prisma
+
+.agent/*
+
+.agents/*
