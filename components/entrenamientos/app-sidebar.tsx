@@ -6,7 +6,6 @@ import {
   Activity,
   BarChartIcon,
   Calendar,
-  Database,
   LayoutDashboardIcon,
   LayoutGrid,
   Layers,
@@ -30,7 +29,6 @@ const data = {
   navMain: [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboardIcon },
     { title: "Sesiones", url: "/dashboard/sesiones", icon: ListIcon },
-    { title: "Sesiones Neon", url: "/dashboard/sesiones-neon", icon: Database },
     { title: "Calendario", url: "/dashboard/calendario", icon: Calendar },
     { title: "Análisis", url: "/dashboard/analisis", icon: BarChartIcon },
     { title: "Ejemplos", url: "/dashboard/ejemplos", icon: Layers },

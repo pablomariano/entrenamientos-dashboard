@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -57,7 +57,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TrainingSession } from "@/lib/entrenamientos/data-processor";
+import { emitTrainingDataRefetch } from "@/lib/entrenamientos/training-data-context";
 import { encodeSessionId } from "@/lib/entrenamientos/session-utils";
 import { DatePickerWithRange } from "@/components/examples/cards/date-picker-with-range";
 import {
@@ -149,11 +151,17 @@ function SortableSessionRow({
   columnVisibility,
   onRename,
   onDelete,
+  selected,
+  canSelect,
+  onToggleSelect,
 }: {
   session: TrainingSession;
   columnVisibility: Record<string, boolean>;
   onRename: (id: string, title: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  selected: boolean;
+  canSelect: boolean;
+  onToggleSelect: () => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -207,9 +215,11 @@ function SortableSessionRow({
   return (
     <TableRow
       ref={setNodeRef}
+      data-state={selected ? "selected" : undefined}
       className={cn(
         "group relative transition-colors",
         isDragging && "z-10 opacity-80",
+        selected && "bg-muted/40",
         hasHRChart && "cursor-pointer hover:bg-muted/60"
       )}
       style={{
@@ -217,8 +227,19 @@ function SortableSessionRow({
         transition,
       }}
     >
-      <TableCell className="w-10 px-2">
-        <DragHandle attributes={attributes} listeners={listeners} />
+      <TableCell className="w-[4.75rem] px-1.5">
+        <div className="flex items-center gap-1">
+          <DragHandle attributes={attributes} listeners={listeners} />
+          <Checkbox
+            checked={selected}
+            disabled={!canSelect}
+            onCheckedChange={() => canSelect && onToggleSelect()}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={canSelect ? `Seleccionar sesión` : "Sesión no eliminable"}
+            title={canSelect ? undefined : "Sin identificador en base de datos"}
+            className="shrink-0"
+          />
+        </div>
       </TableCell>
       {columnVisibility.header !== false && (
         <TableCell className="min-w-[200px]">
@@ -388,10 +409,22 @@ function isSessionInDateRange(
   return sessionDay <= toDay;
 }
 
+function isDeleteSuccessful(res: Response): boolean {
+  return res.ok || res.status === 404;
+}
+
 export function SessionsList({ sessions }: SessionsListProps) {
   const [orderedSessions, setOrderedSessions] = useState<TrainingSession[]>(() =>
     [...sessions].sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime())
   );
+
+  useEffect(() => {
+    setOrderedSessions(
+      [...sessions].sort(
+        (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      )
+    );
+  }, [sessions]);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     header: true,
     target: true,
@@ -406,6 +439,9 @@ export function SessionsList({ sessions }: SessionsListProps) {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -444,6 +480,30 @@ export function SessionsList({ sessions }: SessionsListProps) {
 
   const sessionIds: UniqueIdentifier[] = paginatedSessions.map((s) => s.start_time);
 
+  const pageSelectableIds = useMemo(
+    () => paginatedSessions.map((s) => s.id).filter(Boolean) as string[],
+    [paginatedSessions]
+  );
+  const allPageSelected =
+    pageSelectableIds.length > 0 && pageSelectableIds.every((id) => selectedIds.includes(id));
+  const somePageSelected =
+    pageSelectableIds.some((id) => selectedIds.includes(id)) && !allPageSelected;
+
+  function toggleSelectId(id: string) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleSelectAllOnPage() {
+    if (pageSelectableIds.length === 0) return;
+    if (allPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageSelectableIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...pageSelectableIds])]);
+    }
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
@@ -479,8 +539,31 @@ export function SessionsList({ sessions }: SessionsListProps) {
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-    if (!res.ok) throw new Error("Error al eliminar la sesión");
+    if (!isDeleteSuccessful(res)) throw new Error("Error al eliminar la sesión");
     setOrderedSessions((prev) => prev.filter((s) => s.id !== id));
+    setSelectedIds((prev) => prev.filter((x) => x !== id));
+    emitTrainingDataRefetch();
+  }
+
+  async function handleBulkDeleteConfirm() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const deleted: string[] = [];
+      for (const id of ids) {
+        const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+        if (isDeleteSuccessful(res)) deleted.push(id);
+      }
+      setOrderedSessions((prev) =>
+        prev.filter((s) => !s.id || !deleted.includes(s.id))
+      );
+      setSelectedIds((prev) => prev.filter((id) => !deleted.includes(id)));
+      setBulkDeleteOpen(false);
+      emitTrainingDataRefetch();
+    } finally {
+      setBulkDeleting(false);
+    }
   }
 
   const withHR = orderedSessions.filter((s) => s.has_hr && s.hr_samples && s.hr_samples.length > 0).length;
@@ -590,7 +673,23 @@ export function SessionsList({ sessions }: SessionsListProps) {
               <Table className="min-w-full">
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="w-10 px-2" />
+                    <TableHead className="w-[4.75rem] px-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="size-7 shrink-0" aria-hidden />
+                        <Checkbox
+                          checked={
+                            allPageSelected
+                              ? true
+                              : somePageSelected
+                                ? "indeterminate"
+                                : false
+                          }
+                          onCheckedChange={() => toggleSelectAllOnPage()}
+                          disabled={pageSelectableIds.length === 0}
+                          aria-label="Seleccionar todas las filas de esta página"
+                        />
+                      </div>
+                    </TableHead>
                     {columnVisibility.header !== false && (
                       <TableHead>Tipo de sesión</TableHead>
                     )}
@@ -629,6 +728,9 @@ export function SessionsList({ sessions }: SessionsListProps) {
                         columnVisibility={columnVisibility}
                         onRename={handleRename}
                         onDelete={handleDelete}
+                        selected={!!session.id && selectedIds.includes(session.id)}
+                        canSelect={!!session.id}
+                        onToggleSelect={() => session.id && toggleSelectId(session.id)}
                       />
                     ))}
                   </SortableContext>
@@ -636,8 +738,24 @@ export function SessionsList({ sessions }: SessionsListProps) {
               </Table>
             </DndContext>
           </div>
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
+            <div className="flex flex-wrap items-center gap-4">
+              {selectedIds.length > 0 && (
+                <>
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {selectedIds.length} seleccionada{selectedIds.length === 1 ? "" : "s"}
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={() => setBulkDeleteOpen(true)}
+                  >
+                    <Trash2 className="size-4" />
+                    Eliminar seleccionadas
+                  </Button>
+                </>
+              )}
               <div className="hidden items-center gap-2 lg:flex">
                 <Label htmlFor="rows-per-page" className="text-sm font-medium">
                   Filas por página
@@ -710,6 +828,36 @@ export function SessionsList({ sessions }: SessionsListProps) {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar sesiones seleccionadas</DialogTitle>
+            <DialogDescription>
+              Se eliminarán de forma permanente {selectedIds.length} sesión
+              {selectedIds.length === 1 ? "" : "es"}. Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBulkDeleteOpen(false)}
+              disabled={bulkDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void handleBulkDeleteConfirm()}
+              disabled={bulkDeleting || selectedIds.length === 0}
+            >
+              {bulkDeleting ? "Eliminando..." : `Eliminar ${selectedIds.length}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

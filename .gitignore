@@ -41,9 +41,11 @@ pnpm-lock.yaml
 !/data/.gitkeep
 
 /scripts/data/*
+/scripts/data/
 
 /generated/prisma
 
 .agent/*
 
 .agents/*
+

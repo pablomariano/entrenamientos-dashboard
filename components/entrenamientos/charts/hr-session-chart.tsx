@@ -20,11 +20,11 @@ const chartConfig = {
 
 // Zonas de FC alineadas con variables del tema (oklch)
 const HR_ZONES = [
-  { zone: 1, label: "Z1", min: 0, max: 100, fill: "var(--chart-3)", opacity: 0.08 },
-  { zone: 2, label: "Z2", min: 100, max: 130, fill: "var(--chart-2)", opacity: 0.1 },
+  { zone: 1, label: "Z1", min: 0, max: 100, fill: "var(--chart-1)", opacity: 0.08 },
+  { zone: 2, label: "Z2", min: 100, max: 130, fill: "var(--chart-3)", opacity: 0.1 },
   { zone: 3, label: "Z3", min: 130, max: 155, fill: "var(--chart-4)", opacity: 0.1 },
   { zone: 4, label: "Z4", min: 155, max: 175, fill: "var(--chart-5)", opacity: 0.12 },
-  { zone: 5, label: "Z5", min: 175, max: 999, fill: "var(--chart-1)", opacity: 0.14 },
+  { zone: 5, label: "Z5", min: 175, max: 999, fill: "var(--chart-2)", opacity: 0.14 },
 ];
 
 interface HRSessionChartProps {

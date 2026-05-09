@@ -76,12 +76,13 @@ const HR_MIN_VALID = 30;
 const HR_MAX_VALID = 250;
 
 // Zonas de FC usando variables del tema
+// Progresión fría → cálida: chart-2 es naranja en el tema; reservado para Z5 (máxima intensidad).
 const HR_ZONES = [
-  { zone: 1, label: "Z1", min: 0, max: 100, fill: "var(--chart-3)", opacity: 0.15, legendClass: "bg-chart-3/20 border-chart-3/40 text-chart-3" },
-  { zone: 2, label: "Z2", min: 100, max: 130, fill: "var(--chart-2)", opacity: 0.18, legendClass: "bg-chart-2/20 border-chart-2/40 text-chart-2" },
+  { zone: 1, label: "Z1", min: 0, max: 100, fill: "var(--chart-1)", opacity: 0.15, legendClass: "bg-chart-1/20 border-chart-1/40 text-chart-1" },
+  { zone: 2, label: "Z2", min: 100, max: 130, fill: "var(--chart-3)", opacity: 0.18, legendClass: "bg-chart-3/20 border-chart-3/40 text-chart-3" },
   { zone: 3, label: "Z3", min: 130, max: 155, fill: "var(--chart-4)", opacity: 0.2, legendClass: "bg-chart-4/20 border-chart-4/40 text-chart-4" },
   { zone: 4, label: "Z4", min: 155, max: 175, fill: "var(--chart-5)", opacity: 0.22, legendClass: "bg-chart-5/20 border-chart-5/40 text-chart-5" },
-  { zone: 5, label: "Z5", min: 175, max: 999, fill: "var(--chart-1)", opacity: 0.25, legendClass: "bg-chart-1/20 border-chart-1/40 text-chart-1" },
+  { zone: 5, label: "Z5", min: 175, max: 999, fill: "var(--chart-2)", opacity: 0.25, legendClass: "bg-chart-2/20 border-chart-2/40 text-chart-2" },
 ];
 
 function getZoneColor(hr: number): string {
