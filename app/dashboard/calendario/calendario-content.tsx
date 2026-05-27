@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useTrainingData } from "@/lib/entrenamientos/training-data-context";
+import Link from "next/link";
+import { encodeSessionId } from "@/lib/entrenamientos/session-utils";
+import { cn } from "@/lib/utils";
 import {
   Plus,
   Sparkles,
@@ -38,6 +41,9 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Heart,
+  Activity,
 } from "lucide-react";
 
 interface ScheduledTraining {
@@ -270,42 +276,68 @@ export function CalendarioContent() {
 
       <div className="grid grid-cols-1 gap-4 px-4 lg:grid-cols-3 lg:px-6">
         {/* Calendar */}
-        <Card className="lg:col-span-1">
-          <CardContent className="p-2">
-            <div className="flex items-center justify-between px-3 py-2">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMonth(subMonths(month, 1))}>
+        <Card className="lg:col-span-1 overflow-hidden border-muted/60 shadow-sm bg-card/30">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-muted/50 bg-muted/20">
+            <span className="text-sm font-semibold capitalize text-foreground flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              {format(month, "MMMM yyyy", { locale: es })}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-7 w-7 hover:bg-muted" onClick={() => setMonth(subMonths(month, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium capitalize">
-                {format(month, "MMMM yyyy", { locale: es })}
-              </span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMonth(addMonths(month, 1))}>
+              <Button variant="outline" size="icon" className="h-7 w-7 hover:bg-muted" onClick={() => setMonth(addMonths(month, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              month={month}
-              onMonthChange={setMonth}
-              modifiers={{
-                scheduled: scheduledDates,
-                session: sessionDates,
-              }}
-              modifiersClassNames={{
-                scheduled: "border-2 border-primary/50 rounded-md",
-                session: "bg-chart-2/20",
-              }}
-              locale={es}
-            />
-            <div className="flex items-center gap-4 px-3 pt-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm border-2 border-primary/50" />
+          </div>
+          <CardContent className="p-3">
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                month={month}
+                onMonthChange={setMonth}
+                modifiers={{
+                  scheduled: scheduledDates,
+                  session: sessionDates,
+                }}
+                modifiersClassNames={{
+                  scheduled: "border border-dashed border-primary/60 bg-primary/5 text-primary rounded-lg font-medium",
+                  session: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 dark:bg-emerald-500/20 border border-emerald-500/20 rounded-lg font-semibold",
+                }}
+                classNames={{
+                  month_caption: "hidden",
+                  nav: "hidden",
+                  months: "w-full flex flex-col sm:flex-row space-y-4 sm:space-y-0 relative gap-2 capitalize",
+                  month: "space-y-4 w-full",
+                  month_grid: "w-full border-collapse space-y-1",
+                  weekdays: "flex w-full justify-between",
+                  weekday: "w-full text-center text-muted-foreground rounded-md font-normal text-[0.8rem] flex-1",
+                  week: "flex w-full mt-2 justify-between",
+                  day: "h-9 w-full p-0 font-normal aria-selected:opacity-100 rounded-none flex justify-center items-center flex-1",
+                  day_button: cn(
+                    "h-9 w-full text-center text-sm p-0 relative focus-within:relative focus-within:z-20 rounded-md flex items-center justify-center transition-colors",
+                    "hover:bg-muted"
+                  ),
+                  selected: "!bg-primary !text-primary-foreground hover:!bg-primary hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground z-10",
+                  day_selected: "!bg-primary !text-primary-foreground hover:!bg-primary hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground z-10",
+                  today: "bg-accent text-accent-foreground font-semibold",
+                  day_today: "bg-accent text-accent-foreground font-semibold",
+                }}
+                locale={es}
+                className="p-1 w-full"
+              />
+            </div>
+            <Separator className="my-3 opacity-60" />
+            <div className="flex flex-wrap items-center gap-4 px-2 py-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors cursor-default">
+                <span className="h-3 w-3 rounded border border-dashed border-primary/60 bg-primary/5 shrink-0" />
                 Agendado
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-chart-2/40" />
+              <span className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors cursor-default">
+                <span className="h-3 w-3 rounded border border-emerald-500/20 bg-emerald-500/15 dark:bg-emerald-500/20 shrink-0" />
                 Sesión realizada
               </span>
             </div>
@@ -371,7 +403,7 @@ export function CalendarioContent() {
 
             {/* Completed sessions */}
             {selectedSessions.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sesiones realizadas</h4>
                 {selectedSessions.map((s) => {
                   const time = new Date(s.start_time).toLocaleTimeString("es-ES", {
@@ -379,19 +411,98 @@ export function CalendarioContent() {
                     minute: "2-digit",
                     timeZone: "UTC",
                   });
-                  return (
-                    <div key={s.start_time} className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-                      <CheckCircle2 className="h-5 w-5 text-chart-2 shrink-0" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{s.sport ?? "Entrenamiento"}</span>
-                          <Badge variant="secondary" className="text-xs">{s.duration_formatted}</Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                          <span>{time}</span>
-                          {s.hr_avg && <span>FC Prom: {s.hr_avg} bpm</span>}
-                        </div>
+                  const hasDetails = s.has_hr && s.hr_samples && s.hr_samples.length > 0;
+                  const sessionUrl = `/dashboard/sesiones/${encodeSessionId(s.start_time)}`;
+                  
+                  const sportLabel = s.sport === "MTB" ? "MTB" : s.sport === "SPINNING" ? "Spinning" : s.sport ?? "Entrenamiento";
+                  
+                  const cardContent = (
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-chart-2/10 text-chart-2">
+                        {s.sport === "MTB" ? (
+                          <Bike className="h-4.5 w-4.5" />
+                        ) : s.sport === "SPINNING" ? (
+                          <Dumbbell className="h-4.5 w-4.5" />
+                        ) : (
+                          <CheckCircle2 className="h-5 w-5" />
+                        )}
                       </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {s.title ?? `${sportLabel} del ${format(new Date(s.start_time), "d 'de' MMM", { locale: es })}`}
+                          </span>
+                          {s.title && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal uppercase">
+                              {sportLabel}
+                            </Badge>
+                          )}
+                          <Badge variant="secondary" className="text-xs font-mono">{s.duration_formatted}</Badge>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {time}
+                          </span>
+                          
+                          {s.hr_avg && (
+                            <span className="flex items-center gap-1 text-red-500/80 dark:text-red-400/80">
+                              <Heart className="h-3 w-3 fill-current" />
+                              FC Prom: {s.hr_avg} bpm
+                            </span>
+                          )}
+                          
+                          {s.hr_max && (
+                            <span className="flex items-center gap-1">
+                              <Activity className="h-3 w-3" />
+                              FC Máx: {s.hr_max} bpm
+                            </span>
+                          )}
+
+                          {s.distance && (
+                            <span className="flex items-center gap-1 font-medium text-chart-5">
+                              {s.distance.toFixed(1)} km
+                            </span>
+                          )}
+
+                          {s.has_laps && s.num_laps && (
+                            <span className="flex items-center gap-1">
+                              {s.num_laps} {s.num_laps === 1 ? "vuelta" : "vueltas"}
+                            </span>
+                          )}
+                        </div>
+
+                        {s.notes && (
+                          <p className="text-xs text-muted-foreground mt-1.5 italic line-clamp-2 bg-muted/20 p-1.5 rounded border border-dashed">
+                            {s.notes}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {hasDetails && (
+                        <div className="shrink-0 self-center text-muted-foreground group-hover:text-primary transition-colors">
+                          <ChevronRight className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  );
+
+                  return hasDetails ? (
+                    <Link
+                      key={s.start_time}
+                      href={sessionUrl}
+                      className="block rounded-lg border bg-card hover:bg-muted/40 hover:border-primary/30 p-3.5 transition-all group shadow-sm cursor-pointer"
+                    >
+                      {cardContent}
+                    </Link>
+                  ) : (
+                    <div
+                      key={s.start_time}
+                      className="rounded-lg border bg-muted/10 p-3.5 shadow-sm"
+                    >
+                      {cardContent}
                     </div>
                   );
                 })}
