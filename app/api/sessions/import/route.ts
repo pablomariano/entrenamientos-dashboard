@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
   for (const raw of sessions) {
     if (!raw.parseable) { skipped++; continue; }
 
-    const date = new Date(raw.start_time);
+    const hasTimezone = raw.start_time.includes("Z") || /[+-]\d{2}:?\d{2}$/.test(raw.start_time);
+    const date = new Date(hasTimezone ? raw.start_time : `${raw.start_time}Z`);
     const fingerprint = computeFingerprint(date, raw.duration_seconds);
 
     if (deletedSet.has(fingerprint)) { skippedDeleted++; continue; }

@@ -1,34 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import prisma from "@/lib/prisma";
-import { ImportPayloadSchema } from "@/lib/schemas";
-import { computeFingerprint } from "@/lib/sessions/fingerprint";
-import { generateSessionTitle } from "@/lib/sessions/title";
-import { calculateTRIMP, calcUserHR } from "@/lib/sessions/trimp";
-import { calculateCardiacDrift } from "@/lib/sessions/cardiac-drift";
-import type { Sport } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server"; // NEXT.js
+import { auth } from "@/lib/auth"; // auth.ts en @/lib/
+import prisma from "@/lib/prisma"; // prisma.ts en @/lib/
+import { ImportPayloadSchema } from "@/lib/schemas"; // ImportPayloadSchema.ts en @/lib/schemas
+import { computeFingerprint } from "@/lib/sessions/fingerprint"; // computeFingerprint.ts en @/lib/sessions
+import { generateSessionTitle } from "@/lib/sessions/title"; // generateSessionTitle.ts en @/lib/sessions
+import { calculateTRIMP, calcUserHR } from "@/lib/sessions/trimp"; // trimp.ts en @/lib/sessions
+import { calculateCardiacDrift } from "@/lib/sessions/cardiac-drift"; // cardiac-drift.ts en @/lib/sessions
+import type { Sport } from "@prisma/client"; // Sport.ts en @/lib/schemas
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // Fuerza a Next.js a generar la página dinámicamente
 
+// Formatear duración de segundos a horas, minutos y segundos
 function formatDuration(sec: number): string {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
+  const h = Math.floor(sec / 3600); // Horas
+  const m = Math.floor((sec % 3600) / 60); // Minutos
+  const s = sec % 60; // Segundos
   return [h, m, s].map((n) => n.toString().padStart(2, "0")).join(":");
 }
 
+// Maneja las peticiones GET a /api/training-data para obtener todas las sesiones del usuario
 export async function GET() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const session = await auth(); // Obtiene la sesión del usuario
+  const userId = session?.user?.id; // Obtiene el ID del usuario
 
   try {
-    if (userId) {
-      const dbSessions = await prisma.trainingSession.findMany({
-        where: { userId },
-        orderBy: { date: "desc" },
+    if (userId) { // Si el usuario está autenticado
+      const dbSessions = await prisma.trainingSession.findMany({ // Busca todas las sesiones del usuario
+        where: { userId }, // Filtra por el usuario actual
+        orderBy: { date: "desc" }, // Ordena por fecha descendente
         include: {
-          hrSamples: { orderBy: { timeOffsetSeconds: "asc" } },
-          laps: { orderBy: { lapNumber: "asc" } },
+          hrSamples: { orderBy: { timeOffsetSeconds: "asc" } }, // Incluye las muestras de frecuencia cardíaca ordenadas por tiempo
+          laps: { orderBy: { lapNumber: "asc" } }, // Incluye las vueltas ordenadas por número de vuelta
         },
       });
 
@@ -111,7 +113,8 @@ export async function POST(request: NextRequest) {
     for (const raw of sessions) {
       if (!raw.parseable) { skipped++; continue; }
 
-      const date = new Date(raw.start_time);
+      const hasTimezone = raw.start_time.includes("Z") || /[+-]\d{2}:?\d{2}$/.test(raw.start_time);
+      const date = new Date(hasTimezone ? raw.start_time : `${raw.start_time}Z`);
       const fingerprint = computeFingerprint(date, raw.duration_seconds);
 
       if (deletedSet.has(fingerprint) || existingFingerprints.has(fingerprint)) {

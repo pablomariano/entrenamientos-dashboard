@@ -4,6 +4,7 @@ import { ProcessedStats, formatDuration } from "@/lib/entrenamientos/data-proces
 
 interface StatsCardsProps {
   stats: ProcessedStats;
+  weeks?: number;
 }
 
 interface StatCardProps {
@@ -41,7 +42,7 @@ function StatCard({ title, value, sub, icon, accentClass, barValue, barColorClas
   );
 }
 
-export function StatsCards({ stats }: StatsCardsProps) {
+export function StatsCards({ stats, weeks = 17 }: StatsCardsProps) {
   const hrPct = stats.maxHR > 0
     ? Math.round(((stats.avgHR - stats.minHR) / (stats.maxHR - stats.minHR)) * 100)
     : 0;
@@ -51,7 +52,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     : 0;
 
   const avgHoursPerWeek = stats.totalDuration > 0
-    ? Math.round((stats.totalDuration / 3600) / 17 * 10) / 10   // ~17 meses de datos
+    ? Math.round((stats.totalDuration / 3600) / weeks * 10) / 10
     : 0;
 
   return (
