@@ -85,10 +85,10 @@ interface SessionsListProps {
   sessions: TrainingSession[];
 }
 
-const COLUMN_IDS = ["header", "target", "limit", "hr_max", "hr_min", "reviewer"] as const;
+const COLUMN_IDS = ["header", "date", "target", "limit", "hr_max", "hr_min", "reviewer"] as const;
 type ColumnId = (typeof COLUMN_IDS)[number];
 
-type SortKey = "duration" | "hr_avg" | "hr_max" | "hr_min" | null;
+type SortKey = "date" | "duration" | "hr_avg" | "hr_max" | "hr_min" | null;
 type SortDir = "asc" | "desc";
 
 type FilterType = "all" | "withHR" | "withLaps";
@@ -171,6 +171,7 @@ function SortableSessionRow({
   const date = new Date(session.start_time);
   const hasHRChart = session.has_hr && session.hr_samples && session.hr_samples.length > 0;
   const sessionUrl = `/dashboard/sesiones/${encodeSessionId(session.start_time)}`;
+  const sportLabel = session.sport === "MTB" ? "MTB" : session.sport === "SPINNING" ? "Spinning" : session.sport ?? "Entrenamiento";
 
   const { transform, transition, setNodeRef, isDragging, attributes, listeners } = useSortable({
     id: session.start_time,
@@ -242,7 +243,7 @@ function SortableSessionRow({
         </div>
       </TableCell>
       {columnVisibility.header !== false && (
-        <TableCell className="min-w-[200px]">
+        <TableCell className="min-w-[150px]">
           <Link
             href={sessionUrl}
             className={cn(
@@ -251,11 +252,19 @@ function SortableSessionRow({
             )}
             title={hasHRChart ? "Ver detalle de sesión" : "Sin datos de FC"}
           >
-            {session.title ?? dateLabel}
+            {session.title ?? sportLabel}
           </Link>
-          <div className="text-xs text-muted-foreground">
-            {session.title ? `${dateLabel} · ${timeLabel}` : timeLabel}
-          </div>
+          {session.title && (
+            <div className="text-xs text-muted-foreground">
+              {sportLabel}
+            </div>
+          )}
+        </TableCell>
+      )}
+      {columnVisibility.date !== false && (
+        <TableCell className="whitespace-nowrap">
+          <span className="text-sm font-medium">{dateLabel}</span>
+          <div className="text-xs text-muted-foreground">{timeLabel}</div>
         </TableCell>
       )}
       {columnVisibility.target !== false && (
@@ -427,6 +436,7 @@ export function SessionsList({ sessions }: SessionsListProps) {
   }, [sessions]);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({
     header: true,
+    date: true,
     target: true,
     limit: true,
     hr_max: true,
@@ -520,7 +530,11 @@ export function SessionsList({ sessions }: SessionsListProps) {
     ? [...filteredSessions].sort((a, b) => {
         let aVal: number | null | undefined;
         let bVal: number | null | undefined;
-        if (sortKey === "duration") { aVal = a.duration_seconds; bVal = b.duration_seconds; }
+        if (sortKey === "date") {
+          aVal = new Date(a.start_time).getTime();
+          bVal = new Date(b.start_time).getTime();
+        }
+        else if (sortKey === "duration") { aVal = a.duration_seconds; bVal = b.duration_seconds; }
         else if (sortKey === "hr_avg") { aVal = a.hr_avg; bVal = b.hr_avg; }
         else if (sortKey === "hr_max") { aVal = a.hr_max; bVal = b.hr_max; }
         else if (sortKey === "hr_min") { aVal = a.hr_min; bVal = b.hr_min; }
@@ -687,6 +701,7 @@ export function SessionsList({ sessions }: SessionsListProps) {
                   }
                 >
                   {colId === "header" && "Sesión"}
+                  {colId === "date" && "Fecha"}
                   {colId === "target" && "Duración"}
                   {colId === "limit" && "FC media"}
                   {colId === "hr_max" && "FC máxima"}
@@ -750,7 +765,12 @@ export function SessionsList({ sessions }: SessionsListProps) {
                       </div>
                     </TableHead>
                     {columnVisibility.header !== false && (
-                      <TableHead>Tipo de sesión</TableHead>
+                      <TableHead>Sesión</TableHead>
+                    )}
+                    {columnVisibility.date !== false && (
+                      <TableHead>
+                        <SortableHeader label="Fecha" sortKey="date" currentSortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                      </TableHead>
                     )}
                     {columnVisibility.target !== false && (
                       <TableHead className="text-right">
