@@ -61,7 +61,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TrainingSession } from "@/lib/entrenamientos/data-processor";
 import { emitTrainingDataRefetch } from "@/lib/entrenamientos/training-data-context";
 import { encodeSessionId } from "@/lib/entrenamientos/session-utils";
-import { DatePickerWithRange } from "@/components/examples/cards/date-picker-with-range";
+import { DateRangePicker, type DateRangeFilter } from "@/components/entrenamientos/date-range-picker";
 import {
   GripVertical,
   Columns3,
@@ -397,7 +397,7 @@ function SortableSessionRow({
 
 function isSessionInDateRange(
   session: TrainingSession,
-  range: { from?: Date; to?: Date } | undefined
+  range: DateRangeFilter | undefined
 ): boolean {
   if (!range?.from) return true;
   const sessionDate = new Date(session.start_time);
@@ -436,12 +436,72 @@ export function SessionsList({ sessions }: SessionsListProps) {
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [filterType, setFilterType] = useState<FilterType>("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRangeFilter | undefined>(undefined);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Cargar preferencias desde localStorage al montar
+  useEffect(() => {
+    try {
+      const savedFilterType = localStorage.getItem("sessions-filterType");
+      if (savedFilterType) setFilterType(savedFilterType as FilterType);
+
+      const savedSortKey = localStorage.getItem("sessions-sortKey");
+      if (savedSortKey) {
+        setSortKey(savedSortKey === "null" ? null : (savedSortKey as SortKey));
+      }
+
+      const savedSortDir = localStorage.getItem("sessions-sortDir");
+      if (savedSortDir) setSortDir(savedSortDir as SortDir);
+
+      const savedPageIndex = localStorage.getItem("sessions-pageIndex");
+      if (savedPageIndex) setPageIndex(Number(savedPageIndex));
+
+      const savedPageSize = localStorage.getItem("sessions-pageSize");
+      if (savedPageSize) setPageSize(Number(savedPageSize));
+
+      const savedColumnVisibility = localStorage.getItem("sessions-columnVisibility");
+      if (savedColumnVisibility) setColumnVisibility(JSON.parse(savedColumnVisibility));
+
+      const savedDateRange = localStorage.getItem("sessions-dateRange");
+      if (savedDateRange) {
+        const parsed = JSON.parse(savedDateRange);
+        setDateRange({
+          from: parsed.from ? new Date(parsed.from) : undefined,
+          to: parsed.to ? new Date(parsed.to) : undefined,
+        });
+      }
+    } catch (e) {
+      console.error("Error al cargar las preferencias de sesiones desde localStorage:", e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // Guardar preferencias en localStorage cuando cambian (solo después de la carga inicial)
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem("sessions-filterType", filterType);
+      localStorage.setItem("sessions-sortKey", sortKey ? sortKey : "null");
+      localStorage.setItem("sessions-sortDir", sortDir);
+      localStorage.setItem("sessions-pageIndex", String(pageIndex));
+      localStorage.setItem("sessions-pageSize", String(pageSize));
+      localStorage.setItem("sessions-columnVisibility", JSON.stringify(columnVisibility));
+      
+      if (dateRange) {
+        localStorage.setItem("sessions-dateRange", JSON.stringify(dateRange));
+      } else {
+        localStorage.removeItem("sessions-dateRange");
+      }
+    } catch (e) {
+      console.error("Error al guardar las preferencias de sesiones en localStorage:", e);
+    }
+  }, [filterType, sortKey, sortDir, pageIndex, pageSize, columnVisibility, dateRange, isLoaded]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
@@ -643,8 +703,7 @@ export function SessionsList({ sessions }: SessionsListProps) {
         </div>
         </div>
         <div className="flex items-center gap-4">
-          <DatePickerWithRange
-            inline
+          <DateRangePicker
             date={dateRange}
             onDateChange={(range) => {
               setDateRange(range);
