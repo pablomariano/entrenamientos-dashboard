@@ -30,9 +30,11 @@ export async function POST(req: NextRequest) {
   // Obtener fechas de sesiones ya importadas para evitar duplicados
   const existingSessions = await prisma.trainingSession.findMany({
     where: { userId },
-    select: { date: true, hrMin: true, hrMax: true },
+    select: { date: true, duration: true, hrMin: true, hrMax: true, hrAvg: true },
   });
-  const existingDates = new Set(existingSessions.map((s) => s.date.toISOString()));
+  const existingFingerprints = new Set(
+    existingSessions.map((s) => computeFingerprint(s.date, s.duration))
+  );
 
   // Calcular hrRest y hrMax del usuario desde sesiones existentes
   const { hrRest, hrMax: userHrMax } = calcUserHR(existingSessions);
@@ -48,8 +50,22 @@ export async function POST(req: NextRequest) {
     const date = new Date(hasTimezone ? raw.start_time : `${raw.start_time}Z`);
     const fingerprint = computeFingerprint(date, raw.duration_seconds);
 
+    const rawHrAvg = raw.hr_avg ?? null;
+    const rawHrMax = raw.hr_max ?? null;
+
     if (deletedSet.has(fingerprint)) { skippedDeleted++; continue; }
-    if (existingDates.has(date.toISOString())) { skipped++; continue; }
+
+    const isDuplicate = existingFingerprints.has(fingerprint) || existingSessions.some((s) => {
+      if (s.duration !== raw.duration_seconds) return false;
+      const timeDiffMs = Math.abs(s.date.getTime() - date.getTime());
+      const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+      if (timeDiffHours >= 25) return false;
+      if (s.hrAvg != null && rawHrAvg != null && s.hrAvg !== rawHrAvg) return false;
+      if (s.hrMax != null && rawHrMax != null && s.hrMax !== rawHrMax) return false;
+      return true;
+    });
+
+    if (isDuplicate) { skipped++; continue; }
 
     // Detectar sport: si todas las muestras HR están en zona constante por >20min → SPINNING
     const sport: Sport = detectSport(raw.hr_samples ?? [], raw.duration_seconds);

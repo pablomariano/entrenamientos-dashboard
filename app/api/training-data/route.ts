@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     const existingSessions = await prisma.trainingSession.findMany({
       where: { userId },
-      select: { date: true, duration: true, hrMin: true, hrMax: true },
+      select: { date: true, duration: true, hrMin: true, hrMax: true, hrAvg: true },
     });
     const existingFingerprints = new Set(
       existingSessions.map((s) => computeFingerprint(s.date, s.duration))
@@ -117,7 +117,21 @@ export async function POST(request: NextRequest) {
       const date = new Date(hasTimezone ? raw.start_time : `${raw.start_time}Z`);
       const fingerprint = computeFingerprint(date, raw.duration_seconds);
 
-      if (deletedSet.has(fingerprint) || existingFingerprints.has(fingerprint)) {
+      const rawHrAvg = raw.hr_avg ?? null;
+      const rawHrMax = raw.hr_max ?? null;
+
+      // Robust duplicate check: exact fingerprint OR same duration & date within 25 hours (covers timezone offsets) & same HR
+      const isDuplicate = deletedSet.has(fingerprint) || existingFingerprints.has(fingerprint) || existingSessions.some((s) => {
+        if (s.duration !== raw.duration_seconds) return false;
+        const timeDiffMs = Math.abs(s.date.getTime() - date.getTime());
+        const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+        if (timeDiffHours >= 25) return false;
+        if (s.hrAvg != null && rawHrAvg != null && s.hrAvg !== rawHrAvg) return false;
+        if (s.hrMax != null && rawHrMax != null && s.hrMax !== rawHrMax) return false;
+        return true;
+      });
+
+      if (isDuplicate) {
         skipped++;
         continue;
       }

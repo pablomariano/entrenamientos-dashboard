@@ -39,6 +39,7 @@ const flexInt = z.union([z.number(), z.string(), z.null(), z.undefined()]).optio
 
 export const ImportSessionSchema = z.object({
   start_time: z.string(),
+  start_utctime: z.string().optional(),
   duration_seconds: z.union([z.number(), z.string()]).transform((v) => Math.round(Number(v))),
   duration_formatted: z.string().optional(),
   hr_avg: flexInt,
